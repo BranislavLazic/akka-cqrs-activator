@@ -3,8 +3,14 @@ lazy val `akka-cqrs-activator` = project
   .enablePlugins(AutomateHeaderPlugin, GitVersioning)
 
 libraryDependencies ++= Vector(
+  Library.akkaHttp,
+  Library.akkaHttpJson,
+  Library.akkaPersistence,
+  Library.akkaPersistenceCassandra,
+  Library.circeGeneric,
+  Library.serverSentEvents,
   Library.scalaTest % "test"
 )
 
-initialCommands := """|import default.akka.cqrs.activator._
+initialCommands := """|import org.akkacqrs._
                       |""".stripMargin

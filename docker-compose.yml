@@ -1,0 +1,8 @@
+version: '2'
+
+services:
+  cassandra_event_store:
+    image: cassandra
+    ports:
+      - "9042:9042"
+

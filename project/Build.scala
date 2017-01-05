@@ -45,6 +45,6 @@ object Build extends AutoPlugin {
            git.useGitDescribe := true,
 
            // Header settings
-           headers := Map("scala" -> Apache2_0("2016", "brano"))
+           headers := Map("scala" -> Apache2_0("2017", "Branislav Lazic"))
     )
 }
