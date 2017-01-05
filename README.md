@@ -1,11 +1,16 @@
-# akka-cqrs-activator #
+# akka-cqrs-activator
 
-Welcome to akka-cqrs-activator!
+###Issue tracking demo application which shows implementation of event sourcing and CQRS with Akka
 
-## Contribution policy ##
+General concept:
 
-Contributions via GitHub pull requests are gladly accepted from their original author. Along with any pull requests, please state that the contribution is your original work and that you license the work to the project under the project's open source license. Whether or not you state this explicitly, by submitting any copyrighted material via pull request, email, or other means you agree to license the material under the project's open source license and warrant that you have the legal authority to do so.
-
-## License ##
-
-This code is open source software licensed under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html).
+- Cassandra is being used as an event store and also as a "read side" data store
+- Akka Persistent FSM is being used on "write side" to store current state and to define behavior.
+One persistent actor per "issue" is being used
+ - After events are being persisted into Cassandra database, 
+ they're being polled by a "read side" (Akka Persistence Query),
+ read store is being updated and then, they are being published via pub-sub mediator actor to the HTTP server.
+- To deal with eventual consistency on the UI application, all events are being streamed as 
+"a server sent events" from HTTP server. Therefore, UI application can access to "historical" data by simple 
+querying of read store, and also to subscribe to the stream if incoming events and use that as an advantage
+to live-update its UI.
