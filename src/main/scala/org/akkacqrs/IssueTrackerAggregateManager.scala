@@ -28,7 +28,7 @@ object IssueTrackerWriteManager {
 }
 
 class IssueTrackerWriteManager extends Actor {
-  import IssueTrackerWrite._
+  import IssueTrackerAggregate._
 
   implicit val domainEventClassTag: ClassTag[IssueTrackerEvent] = classTag[IssueTrackerEvent]
 
@@ -40,6 +40,6 @@ class IssueTrackerWriteManager extends Actor {
     case deleteIssue @ DeleteIssue(id) => getIssueTrackerWrite(id) forward deleteIssue
   }
   private def getIssueTrackerWrite(id: UUID): ActorRef = {
-    context.child(id.toString).getOrElse(context.actorOf(IssueTrackerWrite.props(id), id.toString))
+    context.child(id.toString).getOrElse(context.actorOf(IssueTrackerAggregate.props(id), id.toString))
   }
 }

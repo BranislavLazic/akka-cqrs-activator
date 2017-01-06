@@ -84,12 +84,15 @@ class IssueTrackerWrite(id: UUID)(implicit val domainEventClassTag: ClassTag[Iss
     case Event(CreateIssue(`id`, description, date), _) =>
       val issueCreated = IssueCreated(id, description, date)
       goto(IssueCreatedState) applying issueCreated replying issueCreated
+
+    case Event(_, _) =>
+      stay replying IssueUnprocessed("Create an issue first.")
   }
 
   when(IssueCreatedState) {
     case Event(UpdateIssueDescription(`id`, description, date), _) =>
       val issueDescriptionUpdated = IssueDescriptionUpdated(id, description, date)
-      stay() applying issueDescriptionUpdated replying issueDescriptionUpdated
+      stay applying issueDescriptionUpdated replying issueDescriptionUpdated
 
     case Event(CloseIssue(`id`), _) =>
       val issueClosed = IssueClosed(id)
@@ -104,21 +107,18 @@ class IssueTrackerWrite(id: UUID)(implicit val domainEventClassTag: ClassTag[Iss
     case Event(DeleteIssue(`id`), _) =>
       val issueDeleted = IssueDeleted(id)
       goto(IssueDeletedState) applying issueDeleted replying issueDeleted
+
+    case Event(_, _) =>
+      stay replying IssueUnprocessed("Issue has been closed.")
   }
 
   when(IssueDeletedState) {
     case Event(_, _) =>
-      stay() replying IssueUnprocessed("Issue has been deleted.")
+      stay replying IssueUnprocessed("Issue has been deleted.")
   }
 
   whenUnhandled {
-    case Event(UpdateIssueDescription(_, _, _), _) =>
-      stay() replying IssueUnprocessed("Please create an issue first.")
-
-    case Event(CloseIssue(_), _) =>
-      stay() replying IssueUnprocessed("Cannot close an issue. Issue has been closed already or not created.")
-
-    case Event(DeleteIssue(_), _) =>
-      stay() replying IssueUnprocessed("Cannot delete a non existing issue.")
+    case Event(CreateIssue(`id`, _, _), _) =>
+      stay replying IssueUnprocessed("Issue has been already created.")
   }
 }
