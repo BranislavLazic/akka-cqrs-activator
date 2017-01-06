@@ -7,6 +7,7 @@ libraryDependencies ++= Vector(
   Library.akkaHttpJson,
   Library.akkaPersistence,
   Library.akkaPersistenceCassandra,
+  Library.akkaPersistenceInmemory,
   Library.circeGeneric,
   Library.serverSentEvents,
   Library.scalaTest % "test"

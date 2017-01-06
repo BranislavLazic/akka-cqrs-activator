@@ -19,7 +19,7 @@ package org.akkacqrs
 import akka.persistence.journal.{ Tagged, WriteEventAdapter }
 
 class IssueTrackerTaggingEventAdapter extends WriteEventAdapter {
-  import IssueTrackerWrite._
+  import IssueTrackerAggregate._
   override def manifest(event: Any): String = ""
 
   def withTag(event: IssueTrackerEvent, tag: String) = Tagged(event, Set(tag))

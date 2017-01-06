@@ -22,11 +22,11 @@ import java.util.UUID
 import akka.actor.Props
 import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
-import org.akkacqrs.IssueTrackerWrite._
+import org.akkacqrs.IssueTrackerAggregate._
 
 import scala.reflect._
 
-object IssueTrackerWrite {
+object IssueTrackerAggregate {
 
   sealed trait IssueTrackerCommand
 
@@ -64,10 +64,10 @@ object IssueTrackerWrite {
 
   case object Empty extends IssueTrackerData
 
-  def props(id: UUID) = Props(new IssueTrackerWrite(id))
+  def props(id: UUID) = Props(new IssueTrackerAggregate(id))
 }
 
-class IssueTrackerWrite(id: UUID)(implicit val domainEventClassTag: ClassTag[IssueTrackerEvent])
+class IssueTrackerAggregate(id: UUID)(implicit val domainEventClassTag: ClassTag[IssueTrackerEvent])
     extends PersistentFSM[IssueTrackerState, IssueTrackerData, IssueTrackerEvent] {
 
   override def persistenceId: String = id.toString

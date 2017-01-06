@@ -19,6 +19,7 @@ package org.akkacqrs
 import java.util.UUID
 
 import akka.actor.{ ActorLogging, ActorRef, Props }
+import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.pattern._
 import akka.persistence.query.{ EventEnvelope2, TimeBasedUUID }
 import akka.persistence.query.scaladsl.EventsByTagQuery2
@@ -26,7 +27,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.utils.UUIDs
-import org.akkacqrs.IssueTrackerWrite._
+import org.akkacqrs.IssueTrackerAggregate._
 
 object IssueTrackerRead {
   final val Name = "issue-tracker-read"
@@ -53,7 +54,6 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
 
   import Settings.CassandraDb._
   import IssueTrackerRead._
-  import PublishSubscribeMediator._
   import context.dispatcher
 
   implicit val materializer = ActorMaterializer()

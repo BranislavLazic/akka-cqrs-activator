@@ -22,12 +22,12 @@ import akka.actor.{ Actor, ActorRef, Props }
 
 import scala.reflect._
 
-object IssueTrackerWriteManager {
-  final val Name = "issue-tracker-write-manager"
-  def props      = Props(new IssueTrackerWriteManager)
+object IssueTrackerAggregateManager {
+  final val Name = "issue-tracker-aggregate-manager"
+  def props      = Props(new IssueTrackerAggregateManager)
 }
 
-class IssueTrackerWriteManager extends Actor {
+class IssueTrackerAggregateManager extends Actor {
   import IssueTrackerAggregate._
 
   implicit val domainEventClassTag: ClassTag[IssueTrackerEvent] = classTag[IssueTrackerEvent]

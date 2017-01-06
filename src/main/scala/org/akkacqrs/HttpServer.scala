@@ -20,6 +20,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
+import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
@@ -31,8 +32,7 @@ import scala.concurrent.duration._
 import akka.pattern._
 import akka.stream.scaladsl.Source
 import de.heikoseeberger.akkasse.ServerSentEvent
-import org.akkacqrs.IssueTrackerWrite._
-import org.akkacqrs.PublishSubscribeMediator.Subscribe
+import org.akkacqrs.IssueTrackerAggregate._
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
@@ -45,10 +45,11 @@ object HttpServer {
 
   final val Name = "http-server"
 
-  def routes(issueTrackerWriteManager: ActorRef,
+  def routes(issueTrackerAggregateManager: ActorRef,
              publishSubscribeMediator: ActorRef,
              requestTimeout: FiniteDuration,
              eventBufferSize: Int)(implicit executionContext: ExecutionContext): Route = {
+
     import de.heikoseeberger.akkahttpcirce.CirceSupport._
     import de.heikoseeberger.akkasse.EventStreamMarshalling._
     import io.circe.generic.auto._
@@ -78,7 +79,7 @@ object HttpServer {
       post {
         entity(as[CreateIssueRequest]) {
           case CreateIssueRequest(description: String) =>
-            onSuccess(issueTrackerWriteManager ? CreateIssue(UUID.randomUUID(), description, LocalDateTime.now())) {
+            onSuccess(issueTrackerAggregateManager ? CreateIssue(UUID.randomUUID(), description, LocalDateTime.now())) {
               case IssueCreated(_, _, _)     => complete(StatusCodes.OK, "Issue created.")
               case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
             }
@@ -87,7 +88,7 @@ object HttpServer {
         put {
           entity(as[UpdateDescriptionRequest]) {
             case UpdateDescriptionRequest(`id`, description) =>
-              onSuccess(issueTrackerWriteManager ? UpdateIssueDescription(id, description, LocalDateTime.now())) {
+              onSuccess(issueTrackerAggregateManager ? UpdateIssueDescription(id, description, LocalDateTime.now())) {
                 case IssueDescriptionUpdated(_, _, _) => complete(StatusCodes.OK, "Issue description updated.")
                 case IssueUnprocessed(message)        => complete(StatusCodes.UnprocessableEntity, message)
               }
@@ -96,14 +97,14 @@ object HttpServer {
           put {
             entity(as[CloseIssueRequest]) {
               case CloseIssueRequest(`id`) =>
-                onSuccess(issueTrackerWriteManager ? CloseIssue(id)) {
+                onSuccess(issueTrackerAggregateManager ? CloseIssue(id)) {
                   case IssueClosed(_)            => complete("Issue has been closed.")
                   case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
                 }
             }
           }
         } ~ delete {
-          onSuccess(issueTrackerWriteManager ? DeleteIssue(id)) {
+          onSuccess(issueTrackerAggregateManager ? DeleteIssue(id)) {
             case IssueDeleted(_)           => complete("Issue has been deleted.")
             case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
           }
@@ -120,10 +121,15 @@ object HttpServer {
             port: Int,
             requestTimeout: FiniteDuration,
             eventBufferSize: Int,
-            issueTrackerWriteManager: ActorRef,
+            issueTrackerAggregateManager: ActorRef,
             publishSubscribeMediator: ActorRef) =
     Props(
-      new HttpServer(host, port, requestTimeout, eventBufferSize, issueTrackerWriteManager, publishSubscribeMediator)
+      new HttpServer(host,
+                     port,
+                     requestTimeout,
+                     eventBufferSize,
+                     issueTrackerAggregateManager,
+                     publishSubscribeMediator)
     )
 }
 
@@ -131,7 +137,7 @@ class HttpServer(host: String,
                  port: Int,
                  requestTimeout: FiniteDuration,
                  eventBufferSize: Int,
-                 issueTrackerWriteManager: ActorRef,
+                 issueTrackerAggregateManager: ActorRef,
                  publishSubscribeMediator: ActorRef)
     extends Actor
     with ActorLogging {
@@ -141,7 +147,7 @@ class HttpServer(host: String,
   implicit val materializer = ActorMaterializer()
 
   Http(context.system)
-    .bindAndHandle(routes(issueTrackerWriteManager, publishSubscribeMediator, requestTimeout, eventBufferSize),
+    .bindAndHandle(routes(issueTrackerAggregateManager, publishSubscribeMediator, requestTimeout, eventBufferSize),
                    host,
                    port)
     .pipeTo(self)
