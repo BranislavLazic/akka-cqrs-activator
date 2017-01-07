@@ -3,8 +3,8 @@ import sbt._
 // format: off
 
 object Version {
-  final val Akka                     = "2.4.14"
-  final val AkkaHttp                 = "2.4.11"
+  final val Akka                     = "2.4.16"
+  final val AkkaHttp                 = "10.0.1"
   final val AkkaHttpJson             = "1.5.4"
   final val AkkaPersistenceCassandra = "0.20"
   final val AkkaPersistenceInmemory  = "1.3.18"
@@ -15,7 +15,7 @@ object Version {
 }
 
 object Library {
-  val akkaHttp                 = "com.typesafe.akka"   %% "akka-http-experimental"     % Version.AkkaHttp
+  val akkaHttp                 = "com.typesafe.akka"   %% "akka-http"                  % Version.AkkaHttp
   val akkaHttpJson             = "de.heikoseeberger"   %% "akka-http-circe"            % Version.AkkaHttpJson
   val akkaPersistence          = "com.typesafe.akka"   %% "akka-persistence"           % Version.Akka
   val akkaPersistenceCassandra = "com.typesafe.akka"   %% "akka-persistence-cassandra" % Version.AkkaPersistenceCassandra
