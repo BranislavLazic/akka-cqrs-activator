@@ -36,8 +36,8 @@ class IssueTrackerAggregateManager extends Actor {
     case createIssue @ CreateIssue(id, _, _) => getIssueTrackerWrite(id) forward createIssue
     case updateIssueDescription @ UpdateIssueDescription(id, _, _) =>
       getIssueTrackerWrite(id) forward updateIssueDescription
-    case closeIssue @ CloseIssue(id)   => getIssueTrackerWrite(id) forward closeIssue
-    case deleteIssue @ DeleteIssue(id) => getIssueTrackerWrite(id) forward deleteIssue
+    case closeIssue @ CloseIssue(id, _)   => getIssueTrackerWrite(id) forward closeIssue
+    case deleteIssue @ DeleteIssue(id, _) => getIssueTrackerWrite(id) forward deleteIssue
   }
   private def getIssueTrackerWrite(id: UUID): ActorRef = {
     context.child(id.toString).getOrElse(context.actorOf(IssueTrackerAggregate.props(id), id.toString))

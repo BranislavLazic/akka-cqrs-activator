@@ -16,6 +16,7 @@
 
 package org.akkacqrs
 
+import java.time.LocalDate
 import java.util.UUID
 
 import akka.actor.{ ActorLogging, ActorRef, Props }
@@ -34,15 +35,63 @@ object IssueTrackerRead {
 
   sealed trait ReadCommand
 
-  case object CreateKeyspace                                        extends ReadCommand
-  case object CreateIssueTable                                      extends ReadCommand
-  final case class GetIssueById(id: UUID)                           extends ReadCommand
-  final case class CloseIssue(id: UUID)                             extends ReadCommand
-  final case class UpdateDescription(id: UUID, description: String) extends ReadCommand
+  case object CreateKeyspace                                      extends ReadCommand
+  case object CreateIssueTable                                    extends ReadCommand
+  final case class GetIssuesByDate(date: LocalDate)               extends ReadCommand
+  final case class GetIssueByDateAndId(date: LocalDate, id: UUID) extends ReadCommand
+
+  sealed trait IssueStatus
+
+  case object IssueOpenedStatus extends IssueStatus {
+    override def toString: String = "OPENED"
+  }
+  case object IssueClosedStatus extends IssueStatus {
+    override def toString: String = "CLOSED"
+  }
 
   sealed trait ReadEvent
 
   final case object TableCreated extends ReadEvent
+
+  object CQLStatements {
+    import Settings.CassandraDb._
+
+    final val CreateKeyspaceStatement: String =
+      s"""
+         |CREATE KEYSPACE IF NOT EXISTS $keyspace
+         |  WITH REPLICATION = { 'class' : '$keyspaceReplicationStrategy', 'replication_factor' : $keyspaceReplicationFactor };
+    """.stripMargin
+
+    final val CreateTableStatement: String =
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.issues (
+         |  id timeuuid,
+         |  description text,
+         |  date_updated varchar,
+         |  issue_status text,
+         |  PRIMARY KEY ((date_updated), id)
+         |) WITH CLUSTERING ORDER BY (id DESC);
+         |
+       |""".stripMargin
+
+    final val InsertStatement: String =
+      s"""
+         |INSERT INTO $keyspace.issues (id, description, date_updated, issue_status)
+         | VALUES (?, ?, ?, ?);
+    """.stripMargin
+
+    final val SelectByDateAndIdStatement: String = s"SELECT * FROM $keyspace.issues WHERE date_updated = ? AND id = ?;"
+
+    final val SelectByDateStatement: String = s"SELECT * FROM $keyspace.issues WHERE date_updated = ?;"
+
+    final val CloseStatement: String =
+      s"UPDATE $keyspace.issues SET issue_status = ? WHERE date_updated = ? AND id = ?;"
+
+    final val UpdateDescriptionStatement: String =
+      s"UPDATE $keyspace.issues SET description = ? WHERE date_updated = ? and id = ?;"
+
+    final val DeleteStatement: String = s"DELETE FROM $keyspace.issues WHERE date_updated = ? and id = ?;"
+  }
 
   def props(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2) =
     Props(new IssueTrackerRead(publishSubscribeMediator, readJournal))
@@ -52,8 +101,8 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
     extends CassandraActor
     with ActorLogging {
 
-  import Settings.CassandraDb._
   import IssueTrackerRead._
+  import IssueTrackerRead.CQLStatements._
   import context.dispatcher
 
   implicit val materializer = ActorMaterializer()
@@ -63,34 +112,6 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
       case EventEnvelope2(_, _, _, event: IssueTrackerEvent) => event
     }
     .runWith(Sink.actorRef(self, "completed"))
-
-  final val CreateKeyspaceStatement: String =
-    s"""
-       |CREATE KEYSPACE IF NOT EXISTS $keyspace
-       |  WITH REPLICATION = { 'class' : '$keyspaceReplicationStrategy', 'replication_factor' : $keyspaceReplicationFactor };
-    """.stripMargin
-
-  final val CreateTableStatement: String =
-    s"""
-       |CREATE TABLE IF NOT EXISTS $keyspace.issues (
-       |  id uuid,
-       |  description text,
-       |  date_updated date,
-       |  issue_status text,
-       |  PRIMARY KEY (id, date_updated)
-       |) WITH CLUSTERING ORDER BY (date_updated ASC)
-       |""".stripMargin
-
-  final val InsertStatement: String =
-    s"""
-      |INSERT INTO $keyspace.issues (id, description, date_updated, status)
-      | VALUES (?, ?, ?, ?)
-    """.stripMargin
-
-  final val SelectByIdStatement: String =
-    s"""
-      | SELECT * FROM $keyspace.issues WHERE id = ?
-    """.stripMargin
 
   override def receive: Receive = {
     case CreateKeyspace =>
@@ -102,7 +123,8 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
   }
 
   private def keyspaceInitialized: Receive = {
-    case CreateIssueTable => session.executeAsync(CreateTableStatement).toFuture pipeTo self
+    case CreateIssueTable =>
+      session.executeAsync(CreateTableStatement).toFuture pipeTo self
     case rs: ResultSet =>
       log.info(rs.getExecutionInfo.getStatement.toString)
       context.become(ready)
@@ -110,16 +132,26 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
   }
 
   private def ready: Receive = {
-    case event: IssueCreated => publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
-//      session.executeAsync(InsertIntoTableStatement, event.id, event.description, event.date)
-    case event: IssueClosed => publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+    case event: IssueCreated =>
+      publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+      session
+        .executeAsync(InsertStatement, event.id, event.description, event.date.toString, IssueOpenedStatus.toString)
+
+    case event: IssueClosed =>
+      publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+      session.executeAsync(CloseStatement, IssueClosedStatus.toString, event.date.toString, event.id)
+
     case event: IssueDescriptionUpdated =>
       publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+      session.executeAsync(UpdateDescriptionStatement, event.description, event.date.toString, event.id)
+
     case event: IssueDeleted =>
       publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+      session.executeAsync(DeleteStatement, event.date.toString, event.id)
 
-    case GetIssueById(id)        => session.executeAsync(SelectByIdStatement, id).toFuture pipeTo sender()
-    case CloseIssue(_)           =>
-    case UpdateDescription(_, _) =>
+    case GetIssueByDateAndId(date, id) =>
+      session.executeAsync(SelectByDateAndIdStatement, date.toString, id).toFuture pipeTo sender()
+
+    case GetIssuesByDate(date) => session.executeAsync(SelectByDateStatement, date.toString).toFuture pipeTo sender()
   }
 }

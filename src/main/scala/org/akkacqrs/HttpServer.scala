@@ -16,7 +16,7 @@
 
 package org.akkacqrs
 
-import java.time.LocalDateTime
+import java.time.LocalDate
 import java.util.UUID
 
 import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
@@ -31,9 +31,14 @@ import akka.http.scaladsl.server.Directives._
 import scala.concurrent.duration._
 import akka.pattern._
 import akka.stream.scaladsl.Source
+import com.datastax.driver.core.ResultSet
+import com.datastax.driver.core.utils.UUIDs
 import de.heikoseeberger.akkasse.ServerSentEvent
 import org.akkacqrs.IssueTrackerAggregate._
+import org.akkacqrs.IssueTrackerRead.{ GetIssueByDateAndId, GetIssuesByDate }
 
+import collection.JavaConversions._
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
@@ -42,10 +47,12 @@ object HttpServer {
   final case class CreateIssueRequest(description: String)
   final case class UpdateDescriptionRequest(id: UUID, description: String)
   final case class CloseIssueRequest(id: UUID)
+  final case class GetIssueByDateAndIdResponse(id: UUID, date: String, description: String, issueStatus: String)
 
   final val Name = "http-server"
 
   def routes(issueTrackerAggregateManager: ActorRef,
+             issueTrackerRead: ActorRef,
              publishSubscribeMediator: ActorRef,
              requestTimeout: FiniteDuration,
              eventBufferSize: Int)(implicit executionContext: ExecutionContext): Route = {
@@ -79,34 +86,43 @@ object HttpServer {
       post {
         entity(as[CreateIssueRequest]) {
           case CreateIssueRequest(description: String) =>
-            onSuccess(issueTrackerAggregateManager ? CreateIssue(UUID.randomUUID(), description, LocalDateTime.now())) {
+            onSuccess(issueTrackerAggregateManager ? CreateIssue(UUIDs.timeBased(), description, LocalDate.now())) {
               case IssueCreated(_, _, _)     => complete(StatusCodes.OK, "Issue created.")
               case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
             }
         }
-      } ~ path(JavaUUID) { id =>
-        put {
-          entity(as[UpdateDescriptionRequest]) {
-            case UpdateDescriptionRequest(`id`, description) =>
-              onSuccess(issueTrackerAggregateManager ? UpdateIssueDescription(id, description, LocalDateTime.now())) {
-                case IssueDescriptionUpdated(_, _, _) => complete(StatusCodes.OK, "Issue description updated.")
-                case IssueUnprocessed(message)        => complete(StatusCodes.UnprocessableEntity, message)
-              }
+      } ~ pathPrefix(Segment) { date =>
+        get {
+          onSuccess(issueTrackerRead ? GetIssuesByDate(date.toLocalDate)) {
+            case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs))
+            case _: ResultSet                 => complete(StatusCodes.NotFound)
           }
-        } ~ {
+        } ~ path(JavaUUID) { id =>
           put {
-            entity(as[CloseIssueRequest]) {
-              case CloseIssueRequest(`id`) =>
-                onSuccess(issueTrackerAggregateManager ? CloseIssue(id)) {
-                  case IssueClosed(_)            => complete("Issue has been closed.")
-                  case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
+            entity(as[UpdateDescriptionRequest]) {
+              case UpdateDescriptionRequest(`id`, description) =>
+                onSuccess(issueTrackerAggregateManager ? UpdateIssueDescription(id, description, date.toLocalDate)) {
+                  case IssueDescriptionUpdated(_, _, _) => complete(StatusCodes.OK, "Issue description updated.")
+                  case IssueUnprocessed(message)        => complete(StatusCodes.UnprocessableEntity, message)
                 }
             }
-          }
-        } ~ delete {
-          onSuccess(issueTrackerAggregateManager ? DeleteIssue(id)) {
-            case IssueDeleted(_)           => complete("Issue has been deleted.")
-            case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
+          } ~ {
+            put {
+              onSuccess(issueTrackerAggregateManager ? CloseIssue(id, date.toLocalDate)) {
+                case IssueClosed(_, _)         => complete("Issue has been closed.")
+                case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
+              }
+            }
+          } ~ get {
+            onSuccess(issueTrackerRead ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
+              case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs).head)
+              case _: ResultSet                 => complete(StatusCodes.NotFound)
+            }
+          } ~ delete {
+            onSuccess(issueTrackerAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
+              case IssueDeleted(_, _)        => complete("Issue has been deleted.")
+              case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
+            }
           }
         }
       } ~ path("event-stream") {
@@ -117,11 +133,23 @@ object HttpServer {
     }
   }
 
+  def resultSetToIssueResponse(rs: ResultSet): mutable.Buffer[GetIssueByDateAndIdResponse] = {
+    rs.all()
+      .map(row => {
+        val id          = row.getUUID("id")
+        val dateUpdated = row.getString("date_updated")
+        val description = row.getString("description")
+        val issueStatus = row.getString("issue_status")
+        GetIssueByDateAndIdResponse(id, dateUpdated, description, issueStatus)
+      })
+  }
+
   def props(host: String,
             port: Int,
             requestTimeout: FiniteDuration,
             eventBufferSize: Int,
             issueTrackerAggregateManager: ActorRef,
+            issueTrackerRead: ActorRef,
             publishSubscribeMediator: ActorRef) =
     Props(
       new HttpServer(host,
@@ -129,6 +157,7 @@ object HttpServer {
                      requestTimeout,
                      eventBufferSize,
                      issueTrackerAggregateManager,
+                     issueTrackerRead,
                      publishSubscribeMediator)
     )
 }
@@ -138,6 +167,7 @@ class HttpServer(host: String,
                  requestTimeout: FiniteDuration,
                  eventBufferSize: Int,
                  issueTrackerAggregateManager: ActorRef,
+                 issueTrackerRead: ActorRef,
                  publishSubscribeMediator: ActorRef)
     extends Actor
     with ActorLogging {
@@ -147,7 +177,11 @@ class HttpServer(host: String,
   implicit val materializer = ActorMaterializer()
 
   Http(context.system)
-    .bindAndHandle(routes(issueTrackerAggregateManager, publishSubscribeMediator, requestTimeout, eventBufferSize),
+    .bindAndHandle(routes(issueTrackerAggregateManager,
+                          issueTrackerRead,
+                          publishSubscribeMediator,
+                          requestTimeout,
+                          eventBufferSize),
                    host,
                    port)
     .pipeTo(self)

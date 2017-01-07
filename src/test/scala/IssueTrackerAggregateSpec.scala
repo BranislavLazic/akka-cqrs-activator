@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import java.time.LocalDateTime
+import java.time.LocalDate
 import java.util.UUID
 
 import akka.actor.ActorSystem
@@ -33,52 +33,52 @@ class IssueTrackerAggregateSpec extends WordSpec with Matchers with BeforeAndAft
     implicit val senderRef = sender.ref
     val uuid               = UUID.randomUUID()
     val description        = "Test description"
-    val dateTime           = LocalDateTime.now()
+    val date               = LocalDate.now()
 
     val issueTrackerAggregate = system.actorOf(IssueTrackerAggregate.props(uuid))
 
     "correctly create a new issue" in {
-      issueTrackerAggregate ! CreateIssue(uuid, description, dateTime)
-      sender.expectMsg(IssueCreated(uuid, description, dateTime))
+      issueTrackerAggregate ! CreateIssue(uuid, description, date)
+      sender.expectMsg(IssueCreated(uuid, description, date))
     }
 
     "not create an issue with same id again" in {
-      issueTrackerAggregate ! CreateIssue(uuid, description, dateTime)
+      issueTrackerAggregate ! CreateIssue(uuid, description, date)
       sender.expectMsg(IssueUnprocessed("Issue has been already created."))
     }
 
     "correctly update an issue" in {
       val updatedIssueDescription = "Updated issue description"
-      val updatedDateTime         = LocalDateTime.now()
-      issueTrackerAggregate ! UpdateIssueDescription(uuid, updatedIssueDescription, updatedDateTime)
-      sender.expectMsg(IssueDescriptionUpdated(uuid, updatedIssueDescription, updatedDateTime))
+      val date                    = LocalDate.now()
+      issueTrackerAggregate ! UpdateIssueDescription(uuid, updatedIssueDescription, date)
+      sender.expectMsg(IssueDescriptionUpdated(uuid, updatedIssueDescription, date))
     }
 
     "correctly update an issue again" in {
       val updatedIssueDescription = "Updated issue description second time"
-      val updatedDateTime         = LocalDateTime.now()
-      issueTrackerAggregate ! UpdateIssueDescription(uuid, updatedIssueDescription, updatedDateTime)
-      sender.expectMsg(IssueDescriptionUpdated(uuid, updatedIssueDescription, updatedDateTime))
+      val date                    = LocalDate.now()
+      issueTrackerAggregate ! UpdateIssueDescription(uuid, updatedIssueDescription, date)
+      sender.expectMsg(IssueDescriptionUpdated(uuid, updatedIssueDescription, date))
     }
 
     "correctly close an issue" in {
-      issueTrackerAggregate ! CloseIssue(uuid)
-      sender.expectMsg(IssueClosed(uuid))
+      issueTrackerAggregate ! CloseIssue(uuid, date)
+      sender.expectMsg(IssueClosed(uuid, date))
     }
 
     "not close an issue again" in {
-      issueTrackerAggregate ! CloseIssue(uuid)
-      sender.expectMsg(IssueUnprocessed("Issue has been closed."))
+      issueTrackerAggregate ! CloseIssue(uuid, date)
+      sender.expectMsg(IssueUnprocessed("Issue has been closed. Cannot update or close again."))
     }
 
     "correctly delete an issue" in {
-      issueTrackerAggregate ! DeleteIssue(uuid)
-      sender.expectMsg(IssueDeleted(uuid))
+      issueTrackerAggregate ! DeleteIssue(uuid, date)
+      sender.expectMsg(IssueDeleted(uuid, date))
     }
 
     "not delete an issue again" in {
-      issueTrackerAggregate ! DeleteIssue(uuid)
-      sender.expectMsg(IssueUnprocessed("Issue has been deleted."))
+      issueTrackerAggregate ! DeleteIssue(uuid, date)
+      sender.expectMsg(IssueUnprocessed("Issue has been deleted. Cannot update, close or delete again."))
     }
   }
 
@@ -86,21 +86,22 @@ class IssueTrackerAggregateSpec extends WordSpec with Matchers with BeforeAndAft
     val sender             = TestProbe()
     implicit val senderRef = sender.ref
     val uuid               = UUID.randomUUID()
+    val date               = LocalDate.now()
 
     val issueTrackerAggregate = system.actorOf(IssueTrackerAggregate.props(uuid))
 
     "not update an issue" in {
-      issueTrackerAggregate ! UpdateIssueDescription(uuid, "Updated description", LocalDateTime.now())
+      issueTrackerAggregate ! UpdateIssueDescription(uuid, "Updated description", date)
       sender.expectMsg(IssueUnprocessed("Create an issue first."))
     }
 
     "not close an issue" in {
-      issueTrackerAggregate ! CloseIssue(uuid)
+      issueTrackerAggregate ! CloseIssue(uuid, date)
       sender.expectMsg(IssueUnprocessed("Create an issue first."))
     }
 
     "not delete an issue" in {
-      issueTrackerAggregate ! DeleteIssue(uuid)
+      issueTrackerAggregate ! DeleteIssue(uuid, date)
       sender.expectMsg(IssueUnprocessed("Create an issue first."))
     }
   }

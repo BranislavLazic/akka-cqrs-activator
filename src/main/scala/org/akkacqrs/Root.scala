@@ -42,12 +42,16 @@ object Root {
                                requestTimeout: FiniteDuration,
                                eventBufferSize: Int,
                                issueTrackerAggregateManager: ActorRef,
+                               issueTrackerRead: ActorRef,
                                publishSubscribeMediator: ActorRef) = {
-    context.actorOf(
-      HttpServer
-        .props(host, port, requestTimeout, eventBufferSize, issueTrackerAggregateManager, publishSubscribeMediator),
-      HttpServer.Name
-    )
+    context.actorOf(HttpServer.props(host,
+                                     port,
+                                     requestTimeout,
+                                     eventBufferSize,
+                                     issueTrackerAggregateManager,
+                                     issueTrackerRead,
+                                     publishSubscribeMediator),
+                    HttpServer.Name)
   }
 
   def props(readJournal: EventsByTagQuery2) = Props(new Root(readJournal))
@@ -72,6 +76,7 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
                          requestTimeout,
                          eventBufferSize,
                          issueTrackerAggregateManager,
+                         issueTrackerRead,
                          publishSubscribeMediator)
       )
     case Terminated(actor) =>

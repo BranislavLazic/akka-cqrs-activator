@@ -1,4 +1,4 @@
-# akka-cqrs-activator
+# Akka CQRS activator
 
 ###Issue tracking demo application which shows implementation of event sourcing and CQRS with Akka
 
