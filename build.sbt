@@ -3,6 +3,7 @@ lazy val `akka-cqrs-activator` = project
   .enablePlugins(AutomateHeaderPlugin, GitVersioning)
 
 libraryDependencies ++= Vector(
+  Library.akkaKryoSerialization,
   Library.akkaHttp,
   Library.akkaHttpJson,
   Library.akkaPersistence,

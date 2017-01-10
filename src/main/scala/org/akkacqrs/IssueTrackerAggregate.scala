@@ -16,7 +16,7 @@
 
 package org.akkacqrs
 
-import java.time.{ LocalDate, LocalDateTime }
+import java.time.LocalDate
 import java.util.UUID
 
 import akka.actor.Props

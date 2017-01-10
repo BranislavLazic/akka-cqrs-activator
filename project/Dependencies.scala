@@ -4,6 +4,7 @@ import sbt._
 
 object Version {
   final val Akka                     = "2.4.16"
+  final val AkkaKryoSerialization    = "0.5.0"
   final val AkkaHttp                 = "10.0.1"
   final val AkkaHttpJson             = "1.5.4"
   final val AkkaPersistenceCassandra = "0.20"
@@ -15,12 +16,13 @@ object Version {
 }
 
 object Library {
-  val akkaHttp                 = "com.typesafe.akka"   %% "akka-http"                  % Version.AkkaHttp
-  val akkaHttpJson             = "de.heikoseeberger"   %% "akka-http-circe"            % Version.AkkaHttpJson
-  val akkaPersistence          = "com.typesafe.akka"   %% "akka-persistence"           % Version.Akka
-  val akkaPersistenceCassandra = "com.typesafe.akka"   %% "akka-persistence-cassandra" % Version.AkkaPersistenceCassandra
-  val akkaPersistenceInmemory  = "com.github.dnvriend" %% "akka-persistence-inmemory"  % Version.AkkaPersistenceInmemory
-  val circeGeneric             = "io.circe"            %% "circe-generic"              % Version.Circe
-  val scalaTest                = "org.scalatest"       %% "scalatest"                  % Version.ScalaTest
-  val serverSentEvents         = "de.heikoseeberger"   %% "akka-sse"                   % Version.ServerSentEvents
+  val akkaKryoSerialization    = "com.github.romix.akka" %% "akka-kryo-serialization"    % Version.AkkaKryoSerialization
+  val akkaHttp                 = "com.typesafe.akka"     %% "akka-http"                  % Version.AkkaHttp
+  val akkaHttpJson             = "de.heikoseeberger"     %% "akka-http-circe"            % Version.AkkaHttpJson
+  val akkaPersistence          = "com.typesafe.akka"     %% "akka-persistence"           % Version.Akka
+  val akkaPersistenceCassandra = "com.typesafe.akka"     %% "akka-persistence-cassandra" % Version.AkkaPersistenceCassandra
+  val akkaPersistenceInmemory  = "com.github.dnvriend"   %% "akka-persistence-inmemory"  % Version.AkkaPersistenceInmemory
+  val circeGeneric             = "io.circe"              %% "circe-generic"              % Version.Circe
+  val scalaTest                = "org.scalatest"         %% "scalatest"                  % Version.ScalaTest
+  val serverSentEvents         = "de.heikoseeberger"     %% "akka-sse"                   % Version.ServerSentEvents
 }
