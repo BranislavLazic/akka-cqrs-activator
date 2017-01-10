@@ -25,7 +25,37 @@ import akka.persistence.fsm.PersistentFSM.FSMState
 import org.akkacqrs.IssueTrackerAggregate._
 
 import scala.reflect._
+/*
+Lifecycle of an issue:
 
+                                       + <-----------+
+                                       |              ^
+                                       | Update issue |
+                                       |              |
+                                       v              +
+                                       +------------->
+
++--------------------+           +-------------------------+             +-------------------------+       +--------------------+
+|                    |           |                         |             |                         |       |                    |
+|                    |           |                         |             |                         |       |                    |
+|                    |           |                         |             |                         |       |                    |
+|                    |           |                         |             |                         |       |                    |
+|     Idle state     +---------> |     Created state       +-----------> |     Closed state        +-----> |   Deleted state    |
+|                    |           |                         |             |                         |       |                    |
+|                    |           |                         |             |                         |       |                    |
+|                    |           |                         |             |                         |       |                    |
+|                    |           |                         |             |                         |       |                    |
+|                    |           |                         |             |                         |       |                    |
++--------+-----------+           +---+-------------------+-+             +------------+------------+       +--------------------+
+         ^                           ^                   ^                            ^
+         |                           |                   |                            |
+         |                           |                   |                            |
+         |                           |                   |                            |
+         |                           |                   |                            |
+         |                           |                   |                            |
+         +                           +                   +                            +
+    Create issue                 Close issue         Delete issue                Delete issue
+ */
 object IssueTrackerAggregate {
 
   sealed trait IssueTrackerCommand
