@@ -94,41 +94,40 @@ object HttpServer {
       } ~ path("event-stream") {
         complete {
           fromEventStream(fromIssueTrackerEvent)
-        } ~ pathPrefix(Segment) { date =>
-          get {
-            onSuccess(issueTrackerRead ? GetIssuesByDate(date.toLocalDate)) {
-              case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs))
+        }
+      } ~ pathPrefix(Segment) { date =>
+        get {
+          onSuccess(issueTrackerRead ? GetIssuesByDate(date.toLocalDate)) {
+            case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs))
+            case _: ResultSet                 => complete(StatusCodes.NotFound)
+          }
+        } ~ path(JavaUUID) { id =>
+          put {
+            entity(as[UpdateDescriptionRequest]) {
+              case UpdateDescriptionRequest(`id`, description) =>
+                onSuccess(issueTrackerAggregateManager ? UpdateIssueDescription(id, description, date.toLocalDate)) {
+                  case IssueDescriptionUpdated(_, _, _) => complete(StatusCodes.OK, "Issue description updated.")
+                  case IssueUnprocessed(message)        => complete(StatusCodes.UnprocessableEntity, message)
+                }
+            }
+          } ~ put {
+            onSuccess(issueTrackerAggregateManager ? CloseIssue(id, date.toLocalDate)) {
+              case IssueClosed(_, _)         => complete("Issue has been closed.")
+              case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
+            }
+          } ~ get {
+            onSuccess(issueTrackerRead ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
+              case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs).head)
               case _: ResultSet                 => complete(StatusCodes.NotFound)
             }
-          } ~ path(JavaUUID) { id =>
-            put {
-              entity(as[UpdateDescriptionRequest]) {
-                case UpdateDescriptionRequest(`id`, description) =>
-                  onSuccess(issueTrackerAggregateManager ? UpdateIssueDescription(id, description, date.toLocalDate)) {
-                    case IssueDescriptionUpdated(_, _, _) => complete(StatusCodes.OK, "Issue description updated.")
-                    case IssueUnprocessed(message)        => complete(StatusCodes.UnprocessableEntity, message)
-                  }
-              }
-            } ~ {
-              put {
-                onSuccess(issueTrackerAggregateManager ? CloseIssue(id, date.toLocalDate)) {
-                  case IssueClosed(_, _)         => complete("Issue has been closed.")
-                  case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
-                }
-              }
-            } ~ get {
-              onSuccess(issueTrackerRead ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
-                case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs).head)
-                case _: ResultSet                 => complete(StatusCodes.NotFound)
-              }
-            } ~ delete {
-              onSuccess(issueTrackerAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
-                case IssueDeleted(_, _)        => complete("Issue has been deleted.")
-                case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
-              }
+          } ~ delete {
+            onSuccess(issueTrackerAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
+              case IssueDeleted(_, _)        => complete("Issue has been deleted.")
+              case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
             }
           }
         }
+
       }
     }
   }
