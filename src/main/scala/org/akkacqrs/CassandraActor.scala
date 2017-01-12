@@ -19,6 +19,9 @@ package org.akkacqrs
 import akka.actor.Actor
 import com.datastax.driver.core.Session
 
+/**
+  * Actor with ability to manage a lifecycle of Cassandra cluster and Cassandra session.
+  */
 trait CassandraActor extends Actor {
 
   val session: Session = CassandraConnector.openConnection()

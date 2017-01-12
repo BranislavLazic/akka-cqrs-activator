@@ -47,7 +47,7 @@ object HttpServer {
   final case class CreateIssueRequest(description: String)
   final case class UpdateDescriptionRequest(id: UUID, description: String)
   final case class CloseIssueRequest(id: UUID)
-  final case class GetIssueByDateAndIdResponse(id: UUID, date: String, description: String, issueStatus: String)
+  final case class IssueResponse(id: UUID, date: String, description: String, issueStatus: String)
 
   final val Name = "http-server"
 
@@ -63,14 +63,27 @@ object HttpServer {
     import io.circe.syntax._
     implicit val timeout = Timeout(requestTimeout)
 
-    def fromEventStream[A: ClassTag](toServerSentEvent: A => ServerSentEvent) = {
+    /**
+      * Subscribes to the stream of incoming events from IssueTrackerRead.
+      *
+      * @param toServerSentEvent the function that converts incoming event to the server sent event
+      * @tparam A the issue tracker event type
+      * @return the source of server sent events
+      */
+    def fromEventStream[A: ClassTag](toServerSentEvent: A => ServerSentEvent): Source[ServerSentEvent, Unit] = {
       Source
         .actorRef[A](eventBufferSize, OverflowStrategy.dropHead)
         .map(toServerSentEvent)
         .mapMaterializedValue(publishSubscribeMediator ! Subscribe(className[A], _))
     }
 
-    def fromIssueTrackerEvent(event: IssueTrackerEvent): ServerSentEvent = {
+    /**
+      * Converts incoming event to the server sent event.
+      *
+      * @param event the incoming IssueTrackerEvent
+      * @return server sent event instance
+      */
+    def eventToServerSentEvent(event: IssueTrackerEvent): ServerSentEvent = {
       event match {
         case issueCreated: IssueCreated => ServerSentEvent(issueCreated.asJson.noSpaces, "issue-created")
         case issueDescriptionUpdated: IssueDescriptionUpdated =>
@@ -91,55 +104,69 @@ object HttpServer {
               case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
             }
         }
-      } ~ path("event-stream") {
-        complete {
-          fromEventStream(fromIssueTrackerEvent)
-        }
-      } ~ pathPrefix(Segment) { date =>
-        get {
-          onSuccess(issueTrackerRead ? GetIssuesByDate(date.toLocalDate)) {
-            case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs))
-            case _: ResultSet                 => complete(StatusCodes.NotFound)
+      } ~
+        // Server sent events
+        path("event-stream") {
+          complete {
+            fromEventStream(eventToServerSentEvent)
           }
-        } ~ path(JavaUUID) { id =>
-          put {
-            entity(as[UpdateDescriptionRequest]) {
-              case UpdateDescriptionRequest(`id`, description) =>
-                onSuccess(issueTrackerAggregateManager ? UpdateIssueDescription(id, description, date.toLocalDate)) {
-                  case IssueDescriptionUpdated(_, _, _) => complete(StatusCodes.OK, "Issue description updated.")
-                  case IssueUnprocessed(message)        => complete(StatusCodes.UnprocessableEntity, message)
-                }
-            }
-          } ~ put {
-            onSuccess(issueTrackerAggregateManager ? CloseIssue(id, date.toLocalDate)) {
-              case IssueClosed(_, _)         => complete("Issue has been closed.")
-              case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
-            }
-          } ~ get {
-            onSuccess(issueTrackerRead ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
-              case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs).head)
+        } ~
+        // Requests for issues by specific date
+        pathPrefix(Segment) { date =>
+          get {
+            onSuccess(issueTrackerRead ? GetIssuesByDate(date.toLocalDate)) {
+              case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs))
               case _: ResultSet                 => complete(StatusCodes.NotFound)
             }
-          } ~ delete {
-            onSuccess(issueTrackerAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
-              case IssueDeleted(_, _)        => complete("Issue has been deleted.")
-              case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
+          } ~
+            // Requests for an issue specified by its UUID
+            path(JavaUUID) { id =>
+              put {
+                entity(as[UpdateDescriptionRequest]) {
+                  case UpdateDescriptionRequest(`id`, description) =>
+                    onSuccess(issueTrackerAggregateManager ? UpdateIssueDescription(id, description, date.toLocalDate)) {
+                      case IssueDescriptionUpdated(_, _, _) => complete(StatusCodes.OK, "Issue description updated.")
+                      case IssueUnprocessed(message)        => complete(StatusCodes.UnprocessableEntity -> message)
+                    }
+                }
+              } ~
+                put {
+                  onSuccess(issueTrackerAggregateManager ? CloseIssue(id, date.toLocalDate)) {
+                    case IssueClosed(_, _)         => complete("Issue has been closed.")
+                    case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
+                  }
+                } ~
+                get {
+                  onSuccess(issueTrackerRead ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
+                    case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs).head)
+                    case _: ResultSet                 => complete(StatusCodes.NotFound)
+                  }
+                } ~
+                delete {
+                  onSuccess(issueTrackerAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
+                    case IssueDeleted(_, _)        => complete("Issue has been deleted.")
+                    case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
+                  }
+                }
             }
-          }
         }
-
-      }
     }
   }
 
-  def resultSetToIssueResponse(rs: ResultSet): mutable.Buffer[GetIssueByDateAndIdResponse] = {
+  /**
+    * Converts ResultSet to the collection of IssueResponse instances.
+    *
+    * @param rs the ResultSet
+    * @return collection of IssueResponse instances
+    */
+  def resultSetToIssueResponse(rs: ResultSet): mutable.Buffer[IssueResponse] = {
     rs.all()
       .map(row => {
         val id          = row.getUUID("id")
         val dateUpdated = row.getString("date_updated")
         val description = row.getString("description")
         val issueStatus = row.getString("issue_status")
-        GetIssueByDateAndIdResponse(id, dateUpdated, description, issueStatus)
+        IssueResponse(id, dateUpdated, description, issueStatus)
       })
   }
 

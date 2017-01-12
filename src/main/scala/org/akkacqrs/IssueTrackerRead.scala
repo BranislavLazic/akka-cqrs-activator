@@ -30,6 +30,10 @@ import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.utils.UUIDs
 import org.akkacqrs.IssueTrackerAggregate._
 
+/**
+  * Creates "read side" Cassandra keyspace and table.
+  * Subscribes to the IssueTrackerEvent's from mediator and manages issues in Cassandra.
+  */
 object IssueTrackerRead {
   final val Name = "issue-tracker-read"
 

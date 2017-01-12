@@ -59,7 +59,7 @@ object Root {
 
 class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
   import Root._
-  import Settings.http._
+  import Settings.Http._
 
   val publishSubscribeMediator: ActorRef     = context.watch(DistributedPubSub(context.system).mediator)
   val issueTrackerAggregateManager: ActorRef = context.watch(createIssueTrackerAggregateManager(context))

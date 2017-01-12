@@ -33,7 +33,7 @@ object Settings {
     val keyspaceReplicationFactor: Int      = config.getInt("cassandra.read.keyspace-replication.replication-factor")
   }
 
-  object http {
+  object Http {
     val host: String         = config.getString("http.host")
     val port: Int            = config.getInt("http.port")
     val eventBufferSize: Int = config.getInt("http.event-buffer-size")

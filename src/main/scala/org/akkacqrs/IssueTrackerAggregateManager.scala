@@ -22,6 +22,12 @@ import akka.actor.{ Actor, ActorRef, Props }
 
 import scala.reflect._
 
+/**
+  * Used to manage IssueTrackerAggregate actors.
+  * If an IssueTrackerAggregate actor doesn't exist already as a child of an IssueTrackerAggregateManager,
+  * then it will be created. All command messages are received by IssueTrackerManager and forwarded to the
+  * child actors.
+  */
 object IssueTrackerAggregateManager {
   final val Name = "issue-tracker-aggregate-manager"
   def props      = Props(new IssueTrackerAggregateManager)
@@ -39,6 +45,7 @@ class IssueTrackerAggregateManager extends Actor {
     case closeIssue @ CloseIssue(id, _)   => getIssueTrackerWrite(id) forward closeIssue
     case deleteIssue @ DeleteIssue(id, _) => getIssueTrackerWrite(id) forward deleteIssue
   }
+
   private def getIssueTrackerWrite(id: UUID): ActorRef = {
     context.child(id.toString).getOrElse(context.actorOf(IssueTrackerAggregate.props(id), id.toString))
   }

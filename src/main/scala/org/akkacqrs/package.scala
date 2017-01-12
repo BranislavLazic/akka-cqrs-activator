@@ -47,10 +47,9 @@ package object akkacqrs {
   implicit class DateTimeConverter[LocalDate](date: String) {
     val dateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     def toLocalDate: java.time.LocalDate     = LocalDate.parse(date, dateTimeFormatter)
-
   }
 
   def className[A: ClassTag]: String = classTag[A].runtimeClass.getName
 
-  implicit val localDateTimeEncoder: Encoder[LocalDate] = Encoder.encodeString.contramap[LocalDate](_.toString)
+  implicit val localDateEncoder: Encoder[LocalDate] = Encoder.encodeString.contramap[LocalDate](_.toString)
 }
