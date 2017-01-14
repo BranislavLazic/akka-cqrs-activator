@@ -44,10 +44,12 @@ import scala.reflect.ClassTag
 
 object HttpServer {
 
-  final case class CreateIssueRequest(description: String)
-  final case class UpdateDescriptionRequest(id: UUID, description: String)
+  final case class CreateIssueRequest(summary: String, description: String)
+  final case class UpdateDescriptionRequest(description: String)
+  final case class UpdateSummaryRequest(summary: String)
   final case class CloseIssueRequest(id: UUID)
-  final case class IssueResponse(id: UUID, date: String, description: String, issueStatus: String)
+
+  final case class IssueResponse(id: UUID, date: String, summary: String, description: String, status: String)
 
   final val Name = "http-server"
 
@@ -70,7 +72,7 @@ object HttpServer {
       * @tparam A the issue tracker event type
       * @return the source of server sent events
       */
-    def fromEventStream[A: ClassTag](toServerSentEvent: A => ServerSentEvent): Source[ServerSentEvent, Unit] = {
+    def fromEventStream[A: ClassTag](toServerSentEvent: A => ServerSentEvent) = {
       Source
         .actorRef[A](eventBufferSize, OverflowStrategy.dropHead)
         .map(toServerSentEvent)
@@ -88,6 +90,8 @@ object HttpServer {
         case issueCreated: IssueCreated => ServerSentEvent(issueCreated.asJson.noSpaces, "issue-created")
         case issueDescriptionUpdated: IssueDescriptionUpdated =>
           ServerSentEvent(issueDescriptionUpdated.asJson.noSpaces, "issue-description-updated")
+        case issueSummaryUpdated: IssueSummaryUpdated =>
+          ServerSentEvent(issueSummaryUpdated.asJson.noSpaces, "issue-summary-updated")
         case issueClosed: IssueClosed   => ServerSentEvent(issueClosed.asJson.noSpaces, "issue-closed")
         case issueDeleted: IssueDeleted => ServerSentEvent(issueDeleted.asJson.noSpaces, "issue-deleted")
         case unprocessedIssue: IssueUnprocessed =>
@@ -95,13 +99,30 @@ object HttpServer {
       }
     }
 
-    pathPrefix("issues") {
+    def assets: Route = getFromResourceDirectory("web") ~ pathSingleSlash {
+      get {
+        redirect("index.html", StatusCodes.PermanentRedirect)
+      }
+    }
+
+    def api: Route = pathPrefix("issues") {
       post {
         entity(as[CreateIssueRequest]) {
-          case CreateIssueRequest(description: String) =>
-            onSuccess(issueTrackerAggregateManager ? CreateIssue(UUIDs.timeBased(), description, LocalDate.now())) {
-              case IssueCreated(_, _, _)     => complete(StatusCodes.OK, "Issue created.")
-              case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity, message)
+          case CreateIssueRequest(summary, _) if summary.isEmpty =>
+            complete(StatusCodes.UnprocessableEntity, "Summary cannot be empty.")
+          case CreateIssueRequest(summary, _) if summary.length > 100 =>
+            complete(StatusCodes.UnprocessableEntity,
+                     "Name of the summary is too long. Maximum lenght is 100 characters.")
+          case CreateIssueRequest(summary: String, description: String) =>
+            onSuccess(
+              issueTrackerAggregateManager ? CreateIssue(UUIDs.timeBased(),
+                                                         summary,
+                                                         description,
+                                                         LocalDate.now(),
+                                                         IssueOpenedStatus)
+            ) {
+              case IssueCreated(_, _, _, _, _) => complete(StatusCodes.OK, "Issue created.")
+              case IssueUnprocessed(message)   => complete(StatusCodes.UnprocessableEntity, message)
             }
         }
       } ~
@@ -123,13 +144,22 @@ object HttpServer {
             path(JavaUUID) { id =>
               put {
                 entity(as[UpdateDescriptionRequest]) {
-                  case UpdateDescriptionRequest(`id`, description) =>
+                  case UpdateDescriptionRequest(description) =>
                     onSuccess(issueTrackerAggregateManager ? UpdateIssueDescription(id, description, date.toLocalDate)) {
                       case IssueDescriptionUpdated(_, _, _) => complete(StatusCodes.OK, "Issue description updated.")
                       case IssueUnprocessed(message)        => complete(StatusCodes.UnprocessableEntity -> message)
                     }
                 }
               } ~
+                put {
+                  entity(as[UpdateSummaryRequest]) {
+                    case UpdateSummaryRequest(summary) =>
+                      onSuccess(issueTrackerAggregateManager ? UpdateIssueSummary(id, summary, date.toLocalDate)) {
+                        case IssueSummaryUpdated(_, _, _) => complete(StatusCodes.OK, "Issue summary updated.")
+                        case IssueUnprocessed(message)    => complete(StatusCodes.UnprocessableEntity -> message)
+                      }
+                  }
+                } ~
                 put {
                   onSuccess(issueTrackerAggregateManager ? CloseIssue(id, date.toLocalDate)) {
                     case IssueClosed(_, _)         => complete("Issue has been closed.")
@@ -151,6 +181,7 @@ object HttpServer {
             }
         }
     }
+    api ~ assets
   }
 
   /**
@@ -163,10 +194,11 @@ object HttpServer {
     rs.all()
       .map(row => {
         val id          = row.getUUID("id")
+        val summary     = row.getString("summary")
         val dateUpdated = row.getString("date_updated")
         val description = row.getString("description")
-        val issueStatus = row.getString("issue_status")
-        IssueResponse(id, dateUpdated, description, issueStatus)
+        val status      = row.getString("issue_status")
+        IssueResponse(id, dateUpdated, summary, description, status)
       })
   }
 

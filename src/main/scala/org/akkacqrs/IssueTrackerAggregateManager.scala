@@ -16,6 +16,7 @@
 
 package org.akkacqrs
 
+import java.time.LocalDate
 import java.util.UUID
 
 import akka.actor.{ Actor, ActorRef, Props }
@@ -39,14 +40,17 @@ class IssueTrackerAggregateManager extends Actor {
   implicit val domainEventClassTag: ClassTag[IssueTrackerEvent] = classTag[IssueTrackerEvent]
 
   override def receive: Receive = {
-    case createIssue @ CreateIssue(id, _, _) => getIssueTrackerWrite(id) forward createIssue
-    case updateIssueDescription @ UpdateIssueDescription(id, _, _) =>
-      getIssueTrackerWrite(id) forward updateIssueDescription
-    case closeIssue @ CloseIssue(id, _)   => getIssueTrackerWrite(id) forward closeIssue
-    case deleteIssue @ DeleteIssue(id, _) => getIssueTrackerWrite(id) forward deleteIssue
+    case createIssue @ CreateIssue(id, _, _, date, _) => getIssueTrackerWrite(id, date) forward createIssue
+    case updateIssueDescription @ UpdateIssueDescription(id, _, date) =>
+      getIssueTrackerWrite(id, date) forward updateIssueDescription
+    case updateIssueSummary @ UpdateIssueSummary(id, _, date) =>
+      getIssueTrackerWrite(id, date) forward updateIssueSummary
+    case closeIssue @ CloseIssue(id, date)   => getIssueTrackerWrite(id, date) forward closeIssue
+    case deleteIssue @ DeleteIssue(id, date) => getIssueTrackerWrite(id, date) forward deleteIssue
   }
 
-  private def getIssueTrackerWrite(id: UUID): ActorRef = {
-    context.child(id.toString).getOrElse(context.actorOf(IssueTrackerAggregate.props(id), id.toString))
+  private def getIssueTrackerWrite(id: UUID, date: LocalDate): ActorRef = {
+    val name = s"${ id.toString }-${ date.toString }"
+    context.child(name).getOrElse(context.actorOf(IssueTrackerAggregate.props(id, date), name))
   }
 }

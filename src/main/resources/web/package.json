@@ -1,0 +1,17 @@
+{
+  "name": "akka-cqrs-activator-ui",
+  "version": "1.0.0",
+  "author": "Branislav Lazic",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "angular": "^1.6.1",
+    "angular-animate": "^1.6.1",
+    "angular-bootstrap-calendar": "^0.27.5",
+    "angular-moment": "^1.0.1",
+    "angular-route": "^1.6.1",
+    "bootstrap": "^3.3.7",
+    "jquery": "^3.1.1",
+    "moment": "^2.17.1",
+    "ng-lodash": "^0.2.3"
+  }
+}

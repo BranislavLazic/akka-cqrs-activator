@@ -1,0 +1,43 @@
+<div class="row">
+    <h2 class="text-center">{{ calendarTitle }}</h2>
+</div>
+<div class="row">
+    <div class="text-center">
+        <div class="btn-group">
+            <button
+                    class="btn btn-primary"
+                    mwl-date-modifier
+                    date="viewDate"
+                    decrement="calendarView"
+                    ng-click="changeDate(viewDate)">
+                Previous
+            </button>
+            <button
+                    class="btn btn-default"
+                    mwl-date-modifier
+                    date="viewDate"
+                    set-to-today
+                    ng-click="changeDate(viewDate)">
+                Today
+            </button>
+            <button
+                    class="btn btn-primary"
+                    mwl-date-modifier
+                    date="viewDate"
+                    increment="calendarView"
+                    ng-click="changeDate(viewDate)">
+                Next
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <mwl-calendar
+            view="calendarView"
+            view-date="viewDate"
+            events="events"
+            on-view-change-click="false"
+            on-timespan-click="onDayClick(calendarDate, calendarCell)"
+            cell-is-open="true">
+    </mwl-calendar>
+</div>

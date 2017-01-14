@@ -1,0 +1,75 @@
+.cal-day-box {
+  text-wrap: none;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+
+  .cal-day-hour-part {
+    height: 30px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border-bottom: thin dashed @borderColor;
+
+    .cal-day-hour-part-time {
+      width: 60px;
+      text-align: center;
+      float: left;
+    }
+
+    .cal-day-hour-part-spacer {
+      height: 30px;
+      display: inline-block;
+    }
+
+    &:hover { background-color: @dayHover; }
+  }
+  .cal-day-hour-part-selected {
+    background-color: @borderColor;
+  }
+  .cal-day-hour {
+    .day-highlight {
+      height: 30px;
+    }
+  }
+  .cal-hours {
+    font-weight: bold;
+    font-size: 12px;
+  }
+  .cal-day-hour:nth-child(odd) {
+    background-color: @rowHover;
+  }
+  .cal-day-panel {
+    position: relative;
+    padding-left: 60px;
+    border: solid 1px #e1e1e1;
+  }
+  .cal-day-panel-hour {
+    position: absolute;
+    width: 100%;
+    margin-left: -60px;
+  }
+  .day-event {
+    position: absolute;
+    width: 150px;
+    overflow: hidden;
+    padding: 2px 3px !important;
+
+    a {
+      font-size: 12px;
+      text-overflow: ellipsis;
+    }
+
+  }
+  .day-highlight {
+    padding-top: 2px;
+    padding-left: 8px;
+    padding-right: 8px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border: 1px solid @eventStandardColor;
+    margin: 1px 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

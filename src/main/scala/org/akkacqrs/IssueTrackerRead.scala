@@ -44,15 +44,6 @@ object IssueTrackerRead {
   final case class GetIssuesByDate(date: LocalDate)               extends ReadCommand
   final case class GetIssueByDateAndId(date: LocalDate, id: UUID) extends ReadCommand
 
-  sealed trait IssueStatus
-
-  case object IssueOpenedStatus extends IssueStatus {
-    override def toString: String = "OPENED"
-  }
-  case object IssueClosedStatus extends IssueStatus {
-    override def toString: String = "CLOSED"
-  }
-
   sealed trait ReadEvent
 
   final case object TableCreated extends ReadEvent
@@ -70,18 +61,19 @@ object IssueTrackerRead {
       s"""
          |CREATE TABLE IF NOT EXISTS $keyspace.issues (
          |  id timeuuid,
+         |  summary varchar,
          |  description text,
          |  date_updated varchar,
          |  issue_status text,
          |  PRIMARY KEY ((date_updated), id)
-         |) WITH CLUSTERING ORDER BY (id DESC);
+         |) WITH CLUSTERING ORDER BY (id ASC);
          |
        |""".stripMargin
 
     final val InsertStatement: String =
       s"""
-         |INSERT INTO $keyspace.issues (id, description, date_updated, issue_status)
-         | VALUES (?, ?, ?, ?);
+         |INSERT INTO $keyspace.issues (id, summary, description, date_updated, issue_status)
+         | VALUES (?, ?, ?, ?, ?);
     """.stripMargin
 
     final val SelectByDateAndIdStatement: String = s"SELECT * FROM $keyspace.issues WHERE date_updated = ? AND id = ?;"
@@ -93,6 +85,9 @@ object IssueTrackerRead {
 
     final val UpdateDescriptionStatement: String =
       s"UPDATE $keyspace.issues SET description = ? WHERE date_updated = ? and id = ?;"
+
+    final val UpdateSummaryStatement: String =
+      s"UPDATE $keyspace.issues SET summary = ? WHERE date_updated = ? and id = ?;"
 
     final val DeleteStatement: String = s"DELETE FROM $keyspace.issues WHERE date_updated = ? and id = ?;"
   }
@@ -138,8 +133,12 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
   private def ready: Receive = {
     case event: IssueCreated =>
       publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
-      session
-        .executeAsync(InsertStatement, event.id, event.description, event.date.toString, IssueOpenedStatus.toString)
+      session.executeAsync(InsertStatement,
+                           event.id,
+                           event.summary,
+                           event.description,
+                           event.date.toString,
+                           event.status.toString)
 
     case event: IssueClosed =>
       publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
@@ -148,6 +147,10 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
     case event: IssueDescriptionUpdated =>
       publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
       session.executeAsync(UpdateDescriptionStatement, event.description, event.date.toString, event.id)
+
+    case event: IssueSummaryUpdated =>
+      publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+      session.executeAsync(UpdateSummaryStatement, event.summary, event.date.toString, event.id)
 
     case event: IssueDeleted =>
       publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)

@@ -60,16 +60,20 @@ object IssueTrackerAggregate {
 
   sealed trait IssueTrackerCommand
 
-  final case class CreateIssue(id: UUID, description: String, date: LocalDate) extends IssueTrackerCommand
+  final case class CreateIssue(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
+      extends IssueTrackerCommand
   final case class UpdateIssueDescription(id: UUID, description: String, dateTime: LocalDate)
       extends IssueTrackerCommand
-  final case class CloseIssue(id: UUID, date: LocalDate)  extends IssueTrackerCommand
-  final case class DeleteIssue(id: UUID, date: LocalDate) extends IssueTrackerCommand
+  final case class UpdateIssueSummary(id: UUID, summary: String, dateTime: LocalDate) extends IssueTrackerCommand
+  final case class CloseIssue(id: UUID, date: LocalDate)                              extends IssueTrackerCommand
+  final case class DeleteIssue(id: UUID, date: LocalDate)                             extends IssueTrackerCommand
 
   sealed trait IssueTrackerEvent
 
-  final case class IssueCreated(id: UUID, description: String, date: LocalDate)            extends IssueTrackerEvent
+  final case class IssueCreated(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
+      extends IssueTrackerEvent
   final case class IssueDescriptionUpdated(id: UUID, description: String, date: LocalDate) extends IssueTrackerEvent
+  final case class IssueSummaryUpdated(id: UUID, summary: String, date: LocalDate)         extends IssueTrackerEvent
   final case class IssueUnprocessed(message: String)                                       extends IssueTrackerEvent
   final case class IssueClosed(id: UUID, date: LocalDate)                                  extends IssueTrackerEvent
   final case class IssueDeleted(id: UUID, date: LocalDate)                                 extends IssueTrackerEvent
@@ -89,17 +93,26 @@ object IssueTrackerAggregate {
     override def identifier = "issueDeleted"
   }
 
+  sealed trait IssueStatus
+
+  case object IssueOpenedStatus extends IssueStatus {
+    override def toString: String = "OPENED"
+  }
+  case object IssueClosedStatus extends IssueStatus {
+    override def toString: String = "CLOSED"
+  }
+
   sealed trait IssueTrackerData
 
   case object Empty extends IssueTrackerData
 
-  def props(id: UUID) = Props(new IssueTrackerAggregate(id))
+  def props(id: UUID, date: LocalDate) = Props(new IssueTrackerAggregate(id, date))
 }
 
-class IssueTrackerAggregate(id: UUID)(implicit val domainEventClassTag: ClassTag[IssueTrackerEvent])
+class IssueTrackerAggregate(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueTrackerEvent])
     extends PersistentFSM[IssueTrackerState, IssueTrackerData, IssueTrackerEvent] {
 
-  override def persistenceId: String = id.toString
+  override def persistenceId: String = s"${ id.toString }-${ date.toString }"
 
   override def applyEvent(domainEvent: IssueTrackerEvent, currentData: IssueTrackerData): IssueTrackerData = {
     domainEvent match {
@@ -110,8 +123,8 @@ class IssueTrackerAggregate(id: UUID)(implicit val domainEventClassTag: ClassTag
   startWith(Idle, Empty)
 
   when(Idle) {
-    case Event(CreateIssue(`id`, description, date), _) =>
-      val issueCreated = IssueCreated(id, description, date)
+    case Event(CreateIssue(`id`, summary, description, `date`, status), _) =>
+      val issueCreated = IssueCreated(id, summary, description, date, status)
       goto(IssueCreatedState) applying issueCreated replying issueCreated
 
     case Event(_, _) =>
@@ -119,21 +132,25 @@ class IssueTrackerAggregate(id: UUID)(implicit val domainEventClassTag: ClassTag
   }
 
   when(IssueCreatedState) {
-    case Event(UpdateIssueDescription(`id`, description, date), _) =>
+    case Event(UpdateIssueDescription(`id`, description, `date`), _) =>
       val issueDescriptionUpdated = IssueDescriptionUpdated(id, description, date)
       stay applying issueDescriptionUpdated replying issueDescriptionUpdated
 
-    case Event(CloseIssue(`id`, date), _) =>
+    case Event(UpdateIssueSummary(`id`, summary, `date`), _) =>
+      val issueSummaryUpdated = IssueSummaryUpdated(id, summary, date)
+      stay applying issueSummaryUpdated replying issueSummaryUpdated
+
+    case Event(CloseIssue(`id`, `date`), _) =>
       val issueClosed = IssueClosed(id, date)
       goto(IssueClosedState) applying issueClosed replying issueClosed
 
-    case Event(DeleteIssue(`id`, date), _) =>
+    case Event(DeleteIssue(`id`, `date`), _) =>
       val issueDeleted = IssueDeleted(id, date)
       goto(IssueDeletedState) applying issueDeleted replying issueDeleted
   }
 
   when(IssueClosedState) {
-    case Event(DeleteIssue(`id`, date), _) =>
+    case Event(DeleteIssue(`id`, `date`), _) =>
       val issueDeleted = IssueDeleted(id, date)
       goto(IssueDeletedState) applying issueDeleted replying issueDeleted
 
@@ -147,7 +164,7 @@ class IssueTrackerAggregate(id: UUID)(implicit val domainEventClassTag: ClassTag
   }
 
   whenUnhandled {
-    case Event(CreateIssue(`id`, _, _), _) =>
+    case Event(CreateIssue(`id`, _, _, _, _), _) =>
       stay replying IssueUnprocessed("Issue has been already created.")
   }
 }
