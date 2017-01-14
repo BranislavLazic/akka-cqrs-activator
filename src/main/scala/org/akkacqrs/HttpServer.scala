@@ -112,7 +112,7 @@ object HttpServer {
             complete(StatusCodes.UnprocessableEntity, "Summary cannot be empty.")
           case CreateIssueRequest(summary, _) if summary.length > 100 =>
             complete(StatusCodes.UnprocessableEntity,
-                     "Name of the summary is too long. Maximum lenght is 100 characters.")
+                     "Name of the summary is too long. Maximum length is 100 characters.")
           case CreateIssueRequest(summary: String, description: String) =>
             onSuccess(
               issueTrackerAggregateManager ? CreateIssue(UUIDs.timeBased(),
