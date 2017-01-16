@@ -14,3 +14,5 @@ One persistent actor per "issue" is being used
 "a server sent events" from HTTP server. Therefore, UI application can access to "historical" data by simple 
 querying of read store, and also to subscribe to the stream if incoming events and use that as an advantage
 to live-update its UI.
+
+Influenced by: [Reactive Flows](https://github.com/hseeberger/reactive-flows)

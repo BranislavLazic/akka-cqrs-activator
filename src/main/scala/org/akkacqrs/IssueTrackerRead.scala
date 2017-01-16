@@ -83,11 +83,8 @@ object IssueTrackerRead {
     final val CloseStatement: String =
       s"UPDATE $keyspace.issues SET issue_status = ? WHERE date_updated = ? AND id = ?;"
 
-    final val UpdateDescriptionStatement: String =
-      s"UPDATE $keyspace.issues SET description = ? WHERE date_updated = ? and id = ?;"
-
-    final val UpdateSummaryStatement: String =
-      s"UPDATE $keyspace.issues SET summary = ? WHERE date_updated = ? and id = ?;"
+    final val UpdateStatement: String =
+      s"UPDATE $keyspace.issues SET summary =?, description = ? WHERE date_updated = ? and id = ?;"
 
     final val DeleteStatement: String = s"DELETE FROM $keyspace.issues WHERE date_updated = ? and id = ?;"
   }
@@ -144,13 +141,9 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
       publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
       session.executeAsync(CloseStatement, IssueClosedStatus.toString, event.date.toString, event.id)
 
-    case event: IssueDescriptionUpdated =>
+    case event: IssueUpdated =>
       publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
-      session.executeAsync(UpdateDescriptionStatement, event.description, event.date.toString, event.id)
-
-    case event: IssueSummaryUpdated =>
-      publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
-      session.executeAsync(UpdateSummaryStatement, event.summary, event.date.toString, event.id)
+      session.executeAsync(UpdateStatement, event.summary, event.description, event.date.toString, event.id)
 
     case event: IssueDeleted =>
       publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)

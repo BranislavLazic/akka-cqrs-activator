@@ -49,32 +49,20 @@ class IssueTrackerAggregateSpec extends WordSpec with Matchers with BeforeAndAft
       sender.expectMsg(IssueUnprocessed("Issue has been already created."))
     }
 
-    "correctly update an issue description" in {
+    "correctly update an issue" in {
       val updatedIssueDescription = "Updated issue description"
+      val updatedIssueSummary     = "Updated summary"
       val date                    = LocalDate.now()
-      issueTrackerAggregate ! UpdateIssueDescription(uuid, updatedIssueDescription, date)
-      sender.expectMsg(IssueDescriptionUpdated(uuid, updatedIssueDescription, date))
+      issueTrackerAggregate ! UpdateIssue(uuid, updatedIssueSummary, updatedIssueDescription, date)
+      sender.expectMsg(IssueUpdated(uuid, updatedIssueSummary, updatedIssueDescription, date))
     }
 
-    "correctly update an issue description again" in {
+    "correctly update an issue again" in {
       val updatedIssueDescription = "Updated issue description second time"
+      val updatedIssueSummary     = "Updated summary"
       val date                    = LocalDate.now()
-      issueTrackerAggregate ! UpdateIssueDescription(uuid, updatedIssueDescription, date)
-      sender.expectMsg(IssueDescriptionUpdated(uuid, updatedIssueDescription, date))
-    }
-
-    "correctly update an issue summary" in {
-      val updatedIssueSummary = "Updated issue summary"
-      val date                = LocalDate.now()
-      issueTrackerAggregate ! UpdateIssueSummary(uuid, updatedIssueSummary, date)
-      sender.expectMsg(IssueSummaryUpdated(uuid, updatedIssueSummary, date))
-    }
-
-    "correctly update an issue summary again" in {
-      val updatedIssueSummary = "Updated issue summary second time"
-      val date                = LocalDate.now()
-      issueTrackerAggregate ! UpdateIssueSummary(uuid, updatedIssueSummary, date)
-      sender.expectMsg(IssueSummaryUpdated(uuid, updatedIssueSummary, date))
+      issueTrackerAggregate ! UpdateIssue(uuid, updatedIssueSummary, updatedIssueDescription, date)
+      sender.expectMsg(IssueUpdated(uuid, updatedIssueSummary, updatedIssueDescription, date))
     }
 
     "correctly close an issue" in {
@@ -107,12 +95,7 @@ class IssueTrackerAggregateSpec extends WordSpec with Matchers with BeforeAndAft
     val issueTrackerAggregate = system.actorOf(IssueTrackerAggregate.props(uuid, date))
 
     "not update an issue description" in {
-      issueTrackerAggregate ! UpdateIssueDescription(uuid, "Updated description", date)
-      sender.expectMsg(IssueUnprocessed("Create an issue first."))
-    }
-
-    "not update an issue summary" in {
-      issueTrackerAggregate ! UpdateIssueSummary(uuid, "Updated summary", date)
+      issueTrackerAggregate ! UpdateIssue(uuid, "Updated summary", "Updated description", date)
       sender.expectMsg(IssueUnprocessed("Create an issue first."))
     }
 

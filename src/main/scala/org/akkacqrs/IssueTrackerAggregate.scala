@@ -62,21 +62,20 @@ object IssueTrackerAggregate {
 
   final case class CreateIssue(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
       extends IssueTrackerCommand
-  final case class UpdateIssueDescription(id: UUID, description: String, dateTime: LocalDate)
+  final case class UpdateIssue(id: UUID, summary: String, description: String, dateTime: LocalDate)
       extends IssueTrackerCommand
-  final case class UpdateIssueSummary(id: UUID, summary: String, dateTime: LocalDate) extends IssueTrackerCommand
-  final case class CloseIssue(id: UUID, date: LocalDate)                              extends IssueTrackerCommand
-  final case class DeleteIssue(id: UUID, date: LocalDate)                             extends IssueTrackerCommand
+  final case class CloseIssue(id: UUID, date: LocalDate)  extends IssueTrackerCommand
+  final case class DeleteIssue(id: UUID, date: LocalDate) extends IssueTrackerCommand
 
   sealed trait IssueTrackerEvent
 
   final case class IssueCreated(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
       extends IssueTrackerEvent
-  final case class IssueDescriptionUpdated(id: UUID, description: String, date: LocalDate) extends IssueTrackerEvent
-  final case class IssueSummaryUpdated(id: UUID, summary: String, date: LocalDate)         extends IssueTrackerEvent
-  final case class IssueUnprocessed(message: String)                                       extends IssueTrackerEvent
-  final case class IssueClosed(id: UUID, date: LocalDate)                                  extends IssueTrackerEvent
-  final case class IssueDeleted(id: UUID, date: LocalDate)                                 extends IssueTrackerEvent
+  final case class IssueUpdated(id: UUID, summary: String, description: String, date: LocalDate)
+      extends IssueTrackerEvent
+  final case class IssueUnprocessed(message: String)       extends IssueTrackerEvent
+  final case class IssueClosed(id: UUID, date: LocalDate)  extends IssueTrackerEvent
+  final case class IssueDeleted(id: UUID, date: LocalDate) extends IssueTrackerEvent
 
   sealed trait IssueTrackerState extends FSMState
 
@@ -132,13 +131,9 @@ class IssueTrackerAggregate(id: UUID, date: LocalDate)(implicit val domainEventC
   }
 
   when(IssueCreatedState) {
-    case Event(UpdateIssueDescription(`id`, description, `date`), _) =>
-      val issueDescriptionUpdated = IssueDescriptionUpdated(id, description, date)
+    case Event(UpdateIssue(`id`, summary, description, `date`), _) =>
+      val issueDescriptionUpdated = IssueUpdated(id, summary, description, date)
       stay applying issueDescriptionUpdated replying issueDescriptionUpdated
-
-    case Event(UpdateIssueSummary(`id`, summary, `date`), _) =>
-      val issueSummaryUpdated = IssueSummaryUpdated(id, summary, date)
-      stay applying issueSummaryUpdated replying issueSummaryUpdated
 
     case Event(CloseIssue(`id`, `date`), _) =>
       val issueClosed = IssueClosed(id, date)

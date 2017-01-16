@@ -44,9 +44,8 @@ import scala.reflect.ClassTag
 
 object HttpServer {
 
-  final case class CreateIssueRequest(summary: String, description: String)
-  final case class UpdateDescriptionRequest(description: String)
-  final case class UpdateSummaryRequest(summary: String)
+  final case class CreateIssueRequest(date: String, summary: String, description: String)
+  final case class UpdateRequest(summary: String, description: String)
   final case class CloseIssueRequest(id: UUID)
 
   final case class IssueResponse(id: UUID, date: String, summary: String, description: String, status: String)
@@ -77,6 +76,7 @@ object HttpServer {
         .actorRef[A](eventBufferSize, OverflowStrategy.dropHead)
         .map(toServerSentEvent)
         .mapMaterializedValue(publishSubscribeMediator ! Subscribe(className[A], _))
+        .keepAlive(15.seconds, () => ServerSentEvent.heartbeat)
     }
 
     /**
@@ -88,10 +88,8 @@ object HttpServer {
     def eventToServerSentEvent(event: IssueTrackerEvent): ServerSentEvent = {
       event match {
         case issueCreated: IssueCreated => ServerSentEvent(issueCreated.asJson.noSpaces, "issue-created")
-        case issueDescriptionUpdated: IssueDescriptionUpdated =>
-          ServerSentEvent(issueDescriptionUpdated.asJson.noSpaces, "issue-description-updated")
-        case issueSummaryUpdated: IssueSummaryUpdated =>
-          ServerSentEvent(issueSummaryUpdated.asJson.noSpaces, "issue-summary-updated")
+        case issueUpdated: IssueUpdated =>
+          ServerSentEvent(issueUpdated.asJson.noSpaces, "issue-updated")
         case issueClosed: IssueClosed   => ServerSentEvent(issueClosed.asJson.noSpaces, "issue-closed")
         case issueDeleted: IssueDeleted => ServerSentEvent(issueDeleted.asJson.noSpaces, "issue-deleted")
         case unprocessedIssue: IssueUnprocessed =>
@@ -108,17 +106,17 @@ object HttpServer {
     def api: Route = pathPrefix("issues") {
       post {
         entity(as[CreateIssueRequest]) {
-          case CreateIssueRequest(summary, _) if summary.isEmpty =>
+          case CreateIssueRequest(_, summary, _) if summary.isEmpty =>
             complete(StatusCodes.UnprocessableEntity, "Summary cannot be empty.")
-          case CreateIssueRequest(summary, _) if summary.length > 100 =>
+          case CreateIssueRequest(_, summary, _) if summary.length > 100 =>
             complete(StatusCodes.UnprocessableEntity,
                      "Name of the summary is too long. Maximum length is 100 characters.")
-          case CreateIssueRequest(summary: String, description: String) =>
+          case CreateIssueRequest(date: String, summary: String, description: String) =>
             onSuccess(
               issueTrackerAggregateManager ? CreateIssue(UUIDs.timeBased(),
                                                          summary,
                                                          description,
-                                                         LocalDate.now(),
+                                                         date.toLocalDate,
                                                          IssueOpenedStatus)
             ) {
               case IssueCreated(_, _, _, _, _) => complete(StatusCodes.OK, "Issue created.")
@@ -143,23 +141,14 @@ object HttpServer {
             // Requests for an issue specified by its UUID
             path(JavaUUID) { id =>
               put {
-                entity(as[UpdateDescriptionRequest]) {
-                  case UpdateDescriptionRequest(description) =>
-                    onSuccess(issueTrackerAggregateManager ? UpdateIssueDescription(id, description, date.toLocalDate)) {
-                      case IssueDescriptionUpdated(_, _, _) => complete(StatusCodes.OK, "Issue description updated.")
-                      case IssueUnprocessed(message)        => complete(StatusCodes.UnprocessableEntity -> message)
+                entity(as[UpdateRequest]) {
+                  case UpdateRequest(summary, description) =>
+                    onSuccess(issueTrackerAggregateManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
+                      case IssueUpdated(_, _, _, _)  => complete(StatusCodes.OK, "Issue updated.")
+                      case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
                     }
                 }
               } ~
-                put {
-                  entity(as[UpdateSummaryRequest]) {
-                    case UpdateSummaryRequest(summary) =>
-                      onSuccess(issueTrackerAggregateManager ? UpdateIssueSummary(id, summary, date.toLocalDate)) {
-                        case IssueSummaryUpdated(_, _, _) => complete(StatusCodes.OK, "Issue summary updated.")
-                        case IssueUnprocessed(message)    => complete(StatusCodes.UnprocessableEntity -> message)
-                      }
-                  }
-                } ~
                 put {
                   onSuccess(issueTrackerAggregateManager ? CloseIssue(id, date.toLocalDate)) {
                     case IssueClosed(_, _)         => complete("Issue has been closed.")

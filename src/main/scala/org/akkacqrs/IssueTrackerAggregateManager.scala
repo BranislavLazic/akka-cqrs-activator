@@ -41,10 +41,8 @@ class IssueTrackerAggregateManager extends Actor {
 
   override def receive: Receive = {
     case createIssue @ CreateIssue(id, _, _, date, _) => getIssueTrackerWrite(id, date) forward createIssue
-    case updateIssueDescription @ UpdateIssueDescription(id, _, date) =>
+    case updateIssueDescription @ UpdateIssue(id, _, _, date) =>
       getIssueTrackerWrite(id, date) forward updateIssueDescription
-    case updateIssueSummary @ UpdateIssueSummary(id, _, date) =>
-      getIssueTrackerWrite(id, date) forward updateIssueSummary
     case closeIssue @ CloseIssue(id, date)   => getIssueTrackerWrite(id, date) forward closeIssue
     case deleteIssue @ DeleteIssue(id, date) => getIssueTrackerWrite(id, date) forward deleteIssue
   }
