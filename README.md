@@ -2,6 +2,17 @@
 
 ### Issue tracking demo application which shows implementation of event sourcing and CQRS with Akka
 
+#### Technical requirements:
+
+- Scala 2.11
+- docker-compose version 1.8
+- SBT
+
+#### Up and run:
+
+- In root directory execute command: `docker-compose -up d` to start Cassandra
+- Then execute command: `sbt run` and you should be able to access application at: http://localhost:8000 
+
 ### General concept:
 
 #### Data store
@@ -16,8 +27,8 @@ In our case - IssueAggregate.
 IssueAggregateManager is being used to manage creation of IssueAggregate actors. 
 Each time when new issue is being created, new IssueAggregate actor is being created with unique id. Therefore,
 one actor per issue. The unique id is composed from time UUID and date (which is date of creation).
-If the actor is not existing in the context of IssueAggregateManager, then the actor is being created or recovered 
-by provided id. If the actor is already persisted, events will be replayed and actor will be recovered to its
+If the actor is not existing in the context of IssueAggregateManager, then the actor is being created as a new one, or recovered 
+by provided id. In case of recovery, events will be replayed and actor will be recovered to its
 latest state. 
 
 With FSM mechanism, we're preventing creation of two same issues or undesired behaviors. Such as: 
@@ -27,21 +38,21 @@ Eventually, actor will pass through four states. Idle, IssueCreatedState, IssueC
 and IssueDeletedState.
 
 Each IssueAggregate actor is being persisted with common tag - "issue-tag". Since id is not common, we will use
-Akka Persistence Query to subscribe to all events by a common tag.
+Akka Persistence Query to subscribe to events by a common tag.
 
 #### Read side
 
-On the read side, IssueRead actor is being used to poll Cassandra event store to subscribe on stream of
+On the read side, IssueRead actor is being used to poll Cassandra event store and to subscribe on stream of
 events. Events are sent to IssueRead itself, their data is being processed, published to the DistributedPubSub mediator
-and then saved to the read side data store. Other capabilities of IssueRead actor are to query Cassandra database and
-to create read side keyspace and table.
+and then used in execution of CQL statements against Cassandra read side data store. 
+Other tasks of IssueRead actor are to query Cassandra database and to create read side keyspace and table.
 
 #### Http API
 
 In this case, we're using Akka HTTP to expose our ES & CQRS implementation to the "outer world".
-HttpApi actor will kickstart Akka HTTP server with few routes: 
+HttpApi actor will start Akka HTTP server with few routes for: 
 
-- Creating, updating, closing and deleting issues.
+- Creating, updating, closing and deleting issues
 - Querying database (obtaining all issues for specific date and issue by date and id)
 - Event stream
 
