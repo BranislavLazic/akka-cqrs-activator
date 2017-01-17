@@ -16,7 +16,6 @@
 
 package org.akkacqrs
 
-import java.time.LocalDate
 import java.util.UUID
 
 import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
@@ -34,8 +33,8 @@ import akka.stream.scaladsl.Source
 import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.utils.UUIDs
 import de.heikoseeberger.akkasse.ServerSentEvent
-import org.akkacqrs.IssueTrackerAggregate._
-import org.akkacqrs.IssueTrackerRead.{ GetIssueByDateAndId, GetIssuesByDate }
+import org.akkacqrs.IssueAggregate._
+import org.akkacqrs.IssueRead.{ GetIssueByDateAndId, GetIssuesByDate }
 
 import collection.JavaConversions._
 import scala.collection.mutable
@@ -52,8 +51,8 @@ object HttpServer {
 
   final val Name = "http-server"
 
-  def routes(issueTrackerAggregateManager: ActorRef,
-             issueTrackerRead: ActorRef,
+  def routes(issueAggregateManager: ActorRef,
+             issueRead: ActorRef,
              publishSubscribeMediator: ActorRef,
              requestTimeout: FiniteDuration,
              eventBufferSize: Int)(implicit executionContext: ExecutionContext): Route = {
@@ -65,10 +64,10 @@ object HttpServer {
     implicit val timeout = Timeout(requestTimeout)
 
     /**
-      * Subscribes to the stream of incoming events from IssueTrackerRead.
+      * Subscribes to the stream of incoming events from IssueRead.
       *
       * @param toServerSentEvent the function that converts incoming event to the server sent event
-      * @tparam A the issue tracker event type
+      * @tparam A the issue  event type
       * @return the source of server sent events
       */
     def fromEventStream[A: ClassTag](toServerSentEvent: A => ServerSentEvent) = {
@@ -82,10 +81,10 @@ object HttpServer {
     /**
       * Converts incoming event to the server sent event.
       *
-      * @param event the incoming IssueTrackerEvent
+      * @param event the incoming issueEvent
       * @return server sent event instance
       */
-    def eventToServerSentEvent(event: IssueTrackerEvent): ServerSentEvent = {
+    def eventToServerSentEvent(event: IssueEvent): ServerSentEvent = {
       event match {
         case issueCreated: IssueCreated => ServerSentEvent(issueCreated.asJson.noSpaces, "issue-created")
         case issueUpdated: IssueUpdated =>
@@ -113,11 +112,11 @@ object HttpServer {
                      "Name of the summary is too long. Maximum length is 100 characters.")
           case CreateIssueRequest(date: String, summary: String, description: String) =>
             onSuccess(
-              issueTrackerAggregateManager ? CreateIssue(UUIDs.timeBased(),
-                                                         summary,
-                                                         description,
-                                                         date.toLocalDate,
-                                                         IssueOpenedStatus)
+              issueAggregateManager ? CreateIssue(UUIDs.timeBased(),
+                                                  summary,
+                                                  description,
+                                                  date.toLocalDate,
+                                                  IssueOpenedStatus)
             ) {
               case IssueCreated(_, _, _, _, _) => complete(StatusCodes.OK, "Issue created.")
               case IssueUnprocessed(message)   => complete(StatusCodes.UnprocessableEntity, message)
@@ -133,7 +132,7 @@ object HttpServer {
         // Requests for issues by specific date
         pathPrefix(Segment) { date =>
           get {
-            onSuccess(issueTrackerRead ? GetIssuesByDate(date.toLocalDate)) {
+            onSuccess(issueRead ? GetIssuesByDate(date.toLocalDate)) {
               case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs))
               case _: ResultSet                 => complete(StatusCodes.NotFound)
             }
@@ -143,26 +142,26 @@ object HttpServer {
               put {
                 entity(as[UpdateRequest]) {
                   case UpdateRequest(summary, description) =>
-                    onSuccess(issueTrackerAggregateManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
+                    onSuccess(issueAggregateManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
                       case IssueUpdated(_, _, _, _)  => complete(StatusCodes.OK, "Issue updated.")
                       case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
                     }
                 }
               } ~
                 put {
-                  onSuccess(issueTrackerAggregateManager ? CloseIssue(id, date.toLocalDate)) {
+                  onSuccess(issueAggregateManager ? CloseIssue(id, date.toLocalDate)) {
                     case IssueClosed(_, _)         => complete("Issue has been closed.")
                     case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
                   }
                 } ~
                 get {
-                  onSuccess(issueTrackerRead ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
+                  onSuccess(issueRead ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
                     case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs).head)
                     case _: ResultSet                 => complete(StatusCodes.NotFound)
                   }
                 } ~
                 delete {
-                  onSuccess(issueTrackerAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
+                  onSuccess(issueAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
                     case IssueDeleted(_, _)        => complete("Issue has been deleted.")
                     case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
                   }
@@ -195,16 +194,16 @@ object HttpServer {
             port: Int,
             requestTimeout: FiniteDuration,
             eventBufferSize: Int,
-            issueTrackerAggregateManager: ActorRef,
-            issueTrackerRead: ActorRef,
+            issueAggregateManager: ActorRef,
+            issueRead: ActorRef,
             publishSubscribeMediator: ActorRef) =
     Props(
       new HttpServer(host,
                      port,
                      requestTimeout,
                      eventBufferSize,
-                     issueTrackerAggregateManager,
-                     issueTrackerRead,
+                     issueAggregateManager,
+                     issueRead,
                      publishSubscribeMediator)
     )
 }
@@ -213,8 +212,8 @@ class HttpServer(host: String,
                  port: Int,
                  requestTimeout: FiniteDuration,
                  eventBufferSize: Int,
-                 issueTrackerAggregateManager: ActorRef,
-                 issueTrackerRead: ActorRef,
+                 issueAggregateManager: ActorRef,
+                 issueRead: ActorRef,
                  publishSubscribeMediator: ActorRef)
     extends Actor
     with ActorLogging {
@@ -224,11 +223,7 @@ class HttpServer(host: String,
   implicit val materializer = ActorMaterializer()
 
   Http(context.system)
-    .bindAndHandle(routes(issueTrackerAggregateManager,
-                          issueTrackerRead,
-                          publishSubscribeMediator,
-                          requestTimeout,
-                          eventBufferSize),
+    .bindAndHandle(routes(issueAggregateManager, issueRead, publishSubscribeMediator, requestTimeout, eventBufferSize),
                    host,
                    port)
     .pipeTo(self)

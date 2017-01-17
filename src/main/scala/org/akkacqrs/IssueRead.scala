@@ -28,14 +28,14 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.utils.UUIDs
-import org.akkacqrs.IssueTrackerAggregate._
+import org.akkacqrs.IssueAggregate._
 
 /**
   * Creates "read side" Cassandra keyspace and table.
-  * Subscribes to the IssueTrackerEvent's from mediator and manages issues in Cassandra.
+  * Subscribes to the IssueEvent's from mediator and manages issues in Cassandra.
   */
-object IssueTrackerRead {
-  final val Name = "issue-tracker-read"
+object IssueRead {
+  final val Name = "issue-read"
 
   sealed trait ReadCommand
 
@@ -90,22 +90,22 @@ object IssueTrackerRead {
   }
 
   def props(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2) =
-    Props(new IssueTrackerRead(publishSubscribeMediator, readJournal))
+    Props(new IssueRead(publishSubscribeMediator, readJournal))
 }
 
-class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2)
+class IssueRead(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2)
     extends CassandraActor
     with ActorLogging {
 
-  import IssueTrackerRead._
-  import IssueTrackerRead.CQLStatements._
+  import IssueRead._
+  import IssueRead.CQLStatements._
   import context.dispatcher
 
   implicit val materializer = ActorMaterializer()
   readJournal
-    .eventsByTag("issue-tracker-tag", TimeBasedUUID(UUIDs.timeBased()))
+    .eventsByTag("issue-tag", TimeBasedUUID(UUIDs.timeBased()))
     .map {
-      case EventEnvelope2(_, _, _, event: IssueTrackerEvent) => event
+      case EventEnvelope2(_, _, _, event: IssueEvent) => event
     }
     .runWith(Sink.actorRef(self, "completed"))
 
@@ -129,7 +129,7 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
 
   private def ready: Receive = {
     case event: IssueCreated =>
-      publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+      publishSubscribeMediator ! Publish(className[IssueEvent], event)
       session.executeAsync(InsertStatement,
                            event.id,
                            event.summary,
@@ -138,15 +138,15 @@ class IssueTrackerRead(publishSubscribeMediator: ActorRef, readJournal: EventsBy
                            event.status.toString)
 
     case event: IssueClosed =>
-      publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+      publishSubscribeMediator ! Publish(className[IssueEvent], event)
       session.executeAsync(CloseStatement, IssueClosedStatus.toString, event.date.toString, event.id)
 
     case event: IssueUpdated =>
-      publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+      publishSubscribeMediator ! Publish(className[IssueEvent], event)
       session.executeAsync(UpdateStatement, event.summary, event.description, event.date.toString, event.id)
 
     case event: IssueDeleted =>
-      publishSubscribeMediator ! Publish(className[IssueTrackerEvent], event)
+      publishSubscribeMediator ! Publish(className[IssueEvent], event)
       session.executeAsync(DeleteStatement, event.date.toString, event.id)
 
     case GetIssueByDateAndId(date, id) =>

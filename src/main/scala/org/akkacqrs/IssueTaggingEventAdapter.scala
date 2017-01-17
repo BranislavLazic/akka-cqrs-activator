@@ -19,19 +19,19 @@ package org.akkacqrs
 import akka.persistence.journal.{ Tagged, WriteEventAdapter }
 
 /**
-  * Creates a tag with the unique name for IssueTrackerEvent's.
+  * Creates a tag with the unique name for IssueEvent's.
   * Events are being persisted with the tag which corresponds to the tag
-  * specified in IssueTrackerTaggingEventAdapter.
+  * specified in IssueTaggingEventAdapter.
   */
-class IssueTrackerTaggingEventAdapter extends WriteEventAdapter {
-  import IssueTrackerAggregate._
+class IssueTaggingEventAdapter extends WriteEventAdapter {
+  import IssueAggregate._
   override def manifest(event: Any): String = ""
 
-  def withTag(event: IssueTrackerEvent, tag: String) = Tagged(event, Set(tag))
+  def withTag(event: IssueEvent, tag: String) = Tagged(event, Set(tag))
 
   override def toJournal(event: Any): Any = {
     event match {
-      case evt: IssueTrackerEvent => withTag(evt, "issue-tracker-tag")
+      case evt: IssueEvent => withTag(evt, "issue-tag")
     }
   }
 }

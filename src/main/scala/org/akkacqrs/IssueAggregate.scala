@@ -22,7 +22,7 @@ import java.util.UUID
 import akka.actor.Props
 import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
-import org.akkacqrs.IssueTrackerAggregate._
+import org.akkacqrs.IssueAggregate._
 
 import scala.reflect._
 /*
@@ -56,39 +56,38 @@ Lifecycle of an issue:
          +                           +                   +                            +
     Create issue                 Close issue         Delete issue                Delete issue
  */
-object IssueTrackerAggregate {
+object IssueAggregate {
 
-  sealed trait IssueTrackerCommand
+  sealed trait IssueCommand
 
   final case class CreateIssue(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
-      extends IssueTrackerCommand
+      extends IssueCommand
   final case class UpdateIssue(id: UUID, summary: String, description: String, dateTime: LocalDate)
-      extends IssueTrackerCommand
-  final case class CloseIssue(id: UUID, date: LocalDate)  extends IssueTrackerCommand
-  final case class DeleteIssue(id: UUID, date: LocalDate) extends IssueTrackerCommand
+      extends IssueCommand
+  final case class CloseIssue(id: UUID, date: LocalDate)  extends IssueCommand
+  final case class DeleteIssue(id: UUID, date: LocalDate) extends IssueCommand
 
-  sealed trait IssueTrackerEvent
+  sealed trait IssueEvent
 
   final case class IssueCreated(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
-      extends IssueTrackerEvent
-  final case class IssueUpdated(id: UUID, summary: String, description: String, date: LocalDate)
-      extends IssueTrackerEvent
-  final case class IssueUnprocessed(message: String)       extends IssueTrackerEvent
-  final case class IssueClosed(id: UUID, date: LocalDate)  extends IssueTrackerEvent
-  final case class IssueDeleted(id: UUID, date: LocalDate) extends IssueTrackerEvent
+      extends IssueEvent
+  final case class IssueUpdated(id: UUID, summary: String, description: String, date: LocalDate) extends IssueEvent
+  final case class IssueUnprocessed(message: String)                                             extends IssueEvent
+  final case class IssueClosed(id: UUID, date: LocalDate)                                        extends IssueEvent
+  final case class IssueDeleted(id: UUID, date: LocalDate)                                       extends IssueEvent
 
-  sealed trait IssueTrackerState extends FSMState
+  sealed trait IssueState extends FSMState
 
-  case object Idle extends IssueTrackerState {
+  case object Idle extends IssueState {
     override def identifier = "idle"
   }
-  case object IssueCreatedState extends IssueTrackerState {
+  case object IssueCreatedState extends IssueState {
     override def identifier = "issueCreated"
   }
-  case object IssueClosedState extends IssueTrackerState {
+  case object IssueClosedState extends IssueState {
     override def identifier = "issueClosed"
   }
-  case object IssueDeletedState extends IssueTrackerState {
+  case object IssueDeletedState extends IssueState {
     override def identifier = "issueDeleted"
   }
 
@@ -101,19 +100,19 @@ object IssueTrackerAggregate {
     override def toString: String = "CLOSED"
   }
 
-  sealed trait IssueTrackerData
+  sealed trait IssueData
 
-  case object Empty extends IssueTrackerData
+  case object Empty extends IssueData
 
-  def props(id: UUID, date: LocalDate) = Props(new IssueTrackerAggregate(id, date))
+  def props(id: UUID, date: LocalDate) = Props(new IssueAggregate(id, date))
 }
 
-class IssueTrackerAggregate(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueTrackerEvent])
-    extends PersistentFSM[IssueTrackerState, IssueTrackerData, IssueTrackerEvent] {
+class IssueAggregate(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueEvent])
+    extends PersistentFSM[IssueState, IssueData, IssueEvent] {
 
   override def persistenceId: String = s"${ id.toString }-${ date.toString }"
 
-  override def applyEvent(domainEvent: IssueTrackerEvent, currentData: IssueTrackerData): IssueTrackerData = {
+  override def applyEvent(domainEvent: IssueEvent, currentData: IssueData): IssueData = {
     domainEvent match {
       case _ => Empty
     }

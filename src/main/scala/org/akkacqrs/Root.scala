@@ -19,21 +19,21 @@ package org.akkacqrs
 import akka.actor.{ Actor, ActorContext, ActorLogging, ActorRef, Props, Terminated }
 import akka.cluster.pubsub.DistributedPubSub
 import akka.persistence.query.scaladsl.EventsByTagQuery2
-import org.akkacqrs.IssueTrackerRead.{ CreateKeyspace, TableCreated }
+import org.akkacqrs.IssueRead.{ CreateKeyspace, TableCreated }
 
 import scala.concurrent.duration.FiniteDuration
 
 object Root {
   final val Name = "root"
 
-  private def createIssueTrackerAggregateManager(context: ActorContext) = {
-    context.actorOf(IssueTrackerAggregateManager.props, IssueTrackerAggregateManager.Name)
+  private def createIssueAggregateManager(context: ActorContext) = {
+    context.actorOf(IssueAggregateManager.props, IssueAggregateManager.Name)
   }
 
-  private def createIssueTrackerRead(context: ActorContext,
-                                     publishSubscribeMediator: ActorRef,
-                                     readJournal: EventsByTagQuery2) = {
-    context.actorOf(IssueTrackerRead.props(publishSubscribeMediator, readJournal), IssueTrackerRead.Name)
+  private def createIssueRead(context: ActorContext,
+                              publishSubscribeMediator: ActorRef,
+                              readJournal: EventsByTagQuery2) = {
+    context.actorOf(IssueRead.props(publishSubscribeMediator, readJournal), IssueRead.Name)
   }
 
   private def createHttpServer(context: ActorContext,
@@ -41,15 +41,15 @@ object Root {
                                port: Int,
                                requestTimeout: FiniteDuration,
                                eventBufferSize: Int,
-                               issueTrackerAggregateManager: ActorRef,
-                               issueTrackerRead: ActorRef,
+                               issueAggregateManager: ActorRef,
+                               issueRead: ActorRef,
                                publishSubscribeMediator: ActorRef) = {
     context.actorOf(HttpServer.props(host,
                                      port,
                                      requestTimeout,
                                      eventBufferSize,
-                                     issueTrackerAggregateManager,
-                                     issueTrackerRead,
+                                     issueAggregateManager,
+                                     issueRead,
                                      publishSubscribeMediator),
                     HttpServer.Name)
   }
@@ -61,11 +61,11 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
   import Root._
   import Settings.Http._
 
-  val publishSubscribeMediator: ActorRef     = context.watch(DistributedPubSub(context.system).mediator)
-  val issueTrackerAggregateManager: ActorRef = context.watch(createIssueTrackerAggregateManager(context))
-  val issueTrackerRead: ActorRef =
-    context.watch(createIssueTrackerRead(context, publishSubscribeMediator, readJournal))
-  issueTrackerRead ! CreateKeyspace
+  val publishSubscribeMediator: ActorRef = context.watch(DistributedPubSub(context.system).mediator)
+  val issueAggregateManager: ActorRef    = context.watch(createIssueAggregateManager(context))
+  val issueRead: ActorRef =
+    context.watch(createIssueRead(context, publishSubscribeMediator, readJournal))
+  issueRead ! CreateKeyspace
 
   override def receive: Receive = {
     case TableCreated =>
@@ -75,8 +75,8 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
                          port,
                          requestTimeout,
                          eventBufferSize,
-                         issueTrackerAggregateManager,
-                         issueTrackerRead,
+                         issueAggregateManager,
+                         issueRead,
                          publishSubscribeMediator)
       )
     case Terminated(actor) =>
