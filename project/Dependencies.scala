@@ -18,6 +18,7 @@ object Version {
 object Library {
   val akkaKryoSerialization    = "com.github.romix.akka" %% "akka-kryo-serialization"    % Version.AkkaKryoSerialization
   val akkaHttp                 = "com.typesafe.akka"     %% "akka-http"                  % Version.AkkaHttp
+  val akkaHttpTestkit          = "com.typesafe.akka"     %% "akka-http-testkit"          % Version.AkkaHttp
   val akkaHttpJson             = "de.heikoseeberger"     %% "akka-http-circe"            % Version.AkkaHttpJson
   val akkaPersistence          = "com.typesafe.akka"     %% "akka-persistence"           % Version.Akka
   val akkaPersistenceCassandra = "com.typesafe.akka"     %% "akka-persistence-cassandra" % Version.AkkaPersistenceCassandra

@@ -11,7 +11,8 @@ libraryDependencies ++= Vector(
   Library.akkaPersistenceInmemory,
   Library.circeGeneric,
   Library.serverSentEvents,
-  Library.scalaTest % "test"
+  Library.scalaTest % "test",
+  Library.akkaHttpTestkit % "test"
 )
 
 initialCommands := """|import org.akkacqrs._

@@ -118,7 +118,7 @@ object HttpServer {
                                                   date.toLocalDate,
                                                   IssueOpenedStatus)
             ) {
-              case IssueCreated(_, _, _, _, _) => complete(StatusCodes.OK, "Issue created.")
+              case IssueCreated(_, _, _, _, _) => complete("Issue created.")
               case IssueUnprocessed(message)   => complete(StatusCodes.UnprocessableEntity, message)
             }
         }
@@ -143,7 +143,7 @@ object HttpServer {
                 entity(as[UpdateRequest]) {
                   case UpdateRequest(summary, description) =>
                     onSuccess(issueAggregateManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
-                      case IssueUpdated(_, _, _, _)  => complete(StatusCodes.OK, "Issue updated.")
+                      case IssueUpdated(_, _, _, _)  => complete("Issue updated.")
                       case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
                     }
                 }
