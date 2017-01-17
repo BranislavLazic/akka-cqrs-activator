@@ -41,7 +41,7 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
-object HttpServer {
+object HttpApi {
 
   final case class CreateIssueRequest(date: String, summary: String, description: String)
   final case class UpdateRequest(summary: String, description: String)
@@ -198,27 +198,27 @@ object HttpServer {
             issueRead: ActorRef,
             publishSubscribeMediator: ActorRef) =
     Props(
-      new HttpServer(host,
-                     port,
-                     requestTimeout,
-                     eventBufferSize,
-                     issueAggregateManager,
-                     issueRead,
-                     publishSubscribeMediator)
+      new HttpApi(host,
+                  port,
+                  requestTimeout,
+                  eventBufferSize,
+                  issueAggregateManager,
+                  issueRead,
+                  publishSubscribeMediator)
     )
 }
 
-class HttpServer(host: String,
-                 port: Int,
-                 requestTimeout: FiniteDuration,
-                 eventBufferSize: Int,
-                 issueAggregateManager: ActorRef,
-                 issueRead: ActorRef,
-                 publishSubscribeMediator: ActorRef)
+class HttpApi(host: String,
+              port: Int,
+              requestTimeout: FiniteDuration,
+              eventBufferSize: Int,
+              issueAggregateManager: ActorRef,
+              issueRead: ActorRef,
+              publishSubscribeMediator: ActorRef)
     extends Actor
     with ActorLogging {
   import context.dispatcher
-  import HttpServer._
+  import HttpApi._
   implicit val timeout      = Timeout(3.seconds)
   implicit val materializer = ActorMaterializer()
 

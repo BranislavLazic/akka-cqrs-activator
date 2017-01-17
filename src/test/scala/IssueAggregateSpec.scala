@@ -109,4 +109,6 @@ class IssueAggregateSpec extends WordSpec with Matchers with BeforeAndAfterAll {
       sender.expectMsg(IssueUnprocessed("Create an issue first."))
     }
   }
+
+  override protected def afterAll(): Unit = system.terminate()
 }

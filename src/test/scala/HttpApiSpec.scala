@@ -29,10 +29,11 @@ import org.scalatest.{ Matchers, WordSpec }
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
-class HttpServerSpec extends WordSpec with Matchers with ScalatestRouteTest {
+class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
+
   import de.heikoseeberger.akkasse.EventStreamMarshalling._
   import de.heikoseeberger.akkahttpcirce.CirceSupport._
-  import org.akkacqrs.HttpServer._
+  import org.akkacqrs.HttpApi._
   import org.akkacqrs.IssueAggregate._
   import io.circe.generic.auto._
   import io.circe.syntax._
@@ -47,12 +48,12 @@ class HttpServerSpec extends WordSpec with Matchers with ScalatestRouteTest {
   private val summary         = "Test summary"
   private val description     = "Test description"
 
-  "HttpServer" should {
+  "HttpApi" should {
     "result in status code PermanentRedirect to index.html upon GET /" in {
       val issueRead             = TestProbe()
       val pubSubMediator        = TestProbe()
       val issueAggregateManager = TestProbe()
-      
+
       Get("/") ~> routes(issueAggregateManager.ref, issueRead.ref, pubSubMediator.ref, timeout, eventBufferSize) ~> check {
         status shouldBe StatusCodes.PermanentRedirect
         header[Location] shouldBe Some(Location(Uri("index.html")))

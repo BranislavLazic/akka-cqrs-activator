@@ -36,22 +36,22 @@ object Root {
     context.actorOf(IssueRead.props(publishSubscribeMediator, readJournal), IssueRead.Name)
   }
 
-  private def createHttpServer(context: ActorContext,
-                               host: String,
-                               port: Int,
-                               requestTimeout: FiniteDuration,
-                               eventBufferSize: Int,
-                               issueAggregateManager: ActorRef,
-                               issueRead: ActorRef,
-                               publishSubscribeMediator: ActorRef) = {
-    context.actorOf(HttpServer.props(host,
-                                     port,
-                                     requestTimeout,
-                                     eventBufferSize,
-                                     issueAggregateManager,
-                                     issueRead,
-                                     publishSubscribeMediator),
-                    HttpServer.Name)
+  private def createHttpApi(context: ActorContext,
+                            host: String,
+                            port: Int,
+                            requestTimeout: FiniteDuration,
+                            eventBufferSize: Int,
+                            issueAggregateManager: ActorRef,
+                            issueRead: ActorRef,
+                            publishSubscribeMediator: ActorRef) = {
+    context.actorOf(HttpApi.props(host,
+                                  port,
+                                  requestTimeout,
+                                  eventBufferSize,
+                                  issueAggregateManager,
+                                  issueRead,
+                                  publishSubscribeMediator),
+                    HttpApi.Name)
   }
 
   def props(readJournal: EventsByTagQuery2) = Props(new Root(readJournal))
@@ -70,14 +70,14 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
   override def receive: Receive = {
     case TableCreated =>
       context.watch(
-        createHttpServer(context,
-                         host,
-                         port,
-                         requestTimeout,
-                         eventBufferSize,
-                         issueAggregateManager,
-                         issueRead,
-                         publishSubscribeMediator)
+        createHttpApi(context,
+                      host,
+                      port,
+                      requestTimeout,
+                      eventBufferSize,
+                      issueAggregateManager,
+                      issueRead,
+                      publishSubscribeMediator)
       )
     case Terminated(actor) =>
       log.info(s"Actor has been terminated: ${ actor.path }")
