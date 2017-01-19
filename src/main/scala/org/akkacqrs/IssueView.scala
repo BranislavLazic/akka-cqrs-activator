@@ -34,8 +34,8 @@ import org.akkacqrs.IssueAggregate._
   * Creates "read side" Cassandra keyspace and table.
   * Subscribes to the IssueEvent's from mediator and manages issues in Cassandra.
   */
-object IssueRead {
-  final val Name = "issue-read"
+object IssueView {
+  final val Name = "issue-view"
 
   sealed trait ReadCommand
 
@@ -90,15 +90,15 @@ object IssueRead {
   }
 
   def props(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2) =
-    Props(new IssueRead(publishSubscribeMediator, readJournal))
+    Props(new IssueView(publishSubscribeMediator, readJournal))
 }
 
-class IssueRead(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2)
+class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2)
     extends CassandraActor
     with ActorLogging {
 
-  import IssueRead._
-  import IssueRead.CQLStatements._
+  import IssueView._
+  import IssueView.CQLStatements._
   import context.dispatcher
 
   implicit val materializer = ActorMaterializer()

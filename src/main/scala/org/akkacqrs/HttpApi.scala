@@ -34,7 +34,7 @@ import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.utils.UUIDs
 import de.heikoseeberger.akkasse.ServerSentEvent
 import org.akkacqrs.IssueAggregate._
-import org.akkacqrs.IssueRead.{ GetIssueByDateAndId, GetIssuesByDate }
+import org.akkacqrs.IssueView.{ GetIssueByDateAndId, GetIssuesByDate }
 
 import collection.JavaConversions._
 import scala.collection.mutable
@@ -52,7 +52,7 @@ object HttpApi {
   final val Name = "http-server"
 
   def routes(issueAggregateManager: ActorRef,
-             issueRead: ActorRef,
+             issueView: ActorRef,
              publishSubscribeMediator: ActorRef,
              requestTimeout: FiniteDuration,
              eventBufferSize: Int)(implicit executionContext: ExecutionContext): Route = {
@@ -64,7 +64,7 @@ object HttpApi {
     implicit val timeout = Timeout(requestTimeout)
 
     /**
-      * Subscribes to the stream of incoming events from IssueRead.
+      * Subscribes to the stream of incoming events from IssueVew.
       *
       * @param toServerSentEvent the function that converts incoming event to the server sent event
       * @tparam A the issue  event type
@@ -132,7 +132,7 @@ object HttpApi {
         // Requests for issues by specific date
         pathPrefix(Segment) { date =>
           get {
-            onSuccess(issueRead ? GetIssuesByDate(date.toLocalDate)) {
+            onSuccess(issueView ? GetIssuesByDate(date.toLocalDate)) {
               case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs))
               case _: ResultSet                 => complete(StatusCodes.NotFound)
             }
@@ -155,7 +155,7 @@ object HttpApi {
                   }
                 } ~
                 get {
-                  onSuccess(issueRead ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
+                  onSuccess(issueView ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
                     case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs).head)
                     case _: ResultSet                 => complete(StatusCodes.NotFound)
                   }

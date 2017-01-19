@@ -19,7 +19,7 @@ package org.akkacqrs
 import akka.actor.{ Actor, ActorContext, ActorLogging, ActorRef, Props, Terminated }
 import akka.cluster.pubsub.DistributedPubSub
 import akka.persistence.query.scaladsl.EventsByTagQuery2
-import org.akkacqrs.IssueRead.{ CreateKeyspace, TableCreated }
+import org.akkacqrs.IssueView.{ CreateKeyspace, TableCreated }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -30,10 +30,10 @@ object Root {
     context.actorOf(IssueAggregateManager.props, IssueAggregateManager.Name)
   }
 
-  private def createIssueRead(context: ActorContext,
+  private def createIssueView(context: ActorContext,
                               publishSubscribeMediator: ActorRef,
                               readJournal: EventsByTagQuery2) = {
-    context.actorOf(IssueRead.props(publishSubscribeMediator, readJournal), IssueRead.Name)
+    context.actorOf(IssueView.props(publishSubscribeMediator, readJournal), IssueView.Name)
   }
 
   private def createHttpApi(context: ActorContext,
@@ -63,9 +63,9 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
 
   val publishSubscribeMediator: ActorRef = context.watch(DistributedPubSub(context.system).mediator)
   val issueAggregateManager: ActorRef    = context.watch(createIssueAggregateManager(context))
-  val issueRead: ActorRef =
-    context.watch(createIssueRead(context, publishSubscribeMediator, readJournal))
-  issueRead ! CreateKeyspace
+  val issueView: ActorRef =
+    context.watch(createIssueView(context, publishSubscribeMediator, readJournal))
+  issueView ! CreateKeyspace
 
   override def receive: Receive = {
     case TableCreated =>
@@ -76,7 +76,7 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
                       requestTimeout,
                       eventBufferSize,
                       issueAggregateManager,
-                      issueRead,
+                      issueView,
                       publishSubscribeMediator)
       )
     case Terminated(actor) =>

@@ -42,10 +42,10 @@ Akka Persistence Query to subscribe to events by a common tag.
 
 #### Read side
 
-On the read side, IssueRead actor is being used to poll Cassandra event store and to subscribe on stream of
-events. Events are sent to IssueRead itself, their data is being processed, published to the DistributedPubSub mediator
+On the read side, IssueVew actor is being used to poll Cassandra event store and to subscribe on stream of
+events. Events are sent to IssueVew itself, their data is being processed, published to the DistributedPubSub mediator
 and then used in execution of CQL statements against Cassandra read side data store. 
-Other tasks of IssueRead actor are to query Cassandra database and to create read side keyspace and table.
+Other tasks of IssueVew actor are to query Cassandra database and to create read side keyspace and table.
 
 #### Http API
 
