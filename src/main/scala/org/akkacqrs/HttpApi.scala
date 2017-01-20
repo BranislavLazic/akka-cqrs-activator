@@ -55,7 +55,8 @@ object HttpApi {
              issueView: ActorRef,
              publishSubscribeMediator: ActorRef,
              requestTimeout: FiniteDuration,
-             eventBufferSize: Int)(implicit executionContext: ExecutionContext): Route = {
+             eventBufferSize: Int,
+             heartbeatInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Route = {
 
     import de.heikoseeberger.akkahttpcirce.CirceSupport._
     import de.heikoseeberger.akkasse.EventStreamMarshalling._
@@ -75,7 +76,7 @@ object HttpApi {
         .actorRef[A](eventBufferSize, OverflowStrategy.dropHead)
         .map(toServerSentEvent)
         .mapMaterializedValue(publishSubscribeMediator ! Subscribe(className[A], _))
-        .keepAlive(15.seconds, () => ServerSentEvent.heartbeat)
+        .keepAlive(heartbeatInterval, () => ServerSentEvent.heartbeat)
     }
 
     /**
@@ -194,6 +195,7 @@ object HttpApi {
             port: Int,
             requestTimeout: FiniteDuration,
             eventBufferSize: Int,
+            heartbeatInterval: FiniteDuration,
             issueAggregateManager: ActorRef,
             issueRead: ActorRef,
             publishSubscribeMediator: ActorRef) =
@@ -202,6 +204,7 @@ object HttpApi {
                   port,
                   requestTimeout,
                   eventBufferSize,
+                  heartbeatInterval: FiniteDuration,
                   issueAggregateManager,
                   issueRead,
                   publishSubscribeMediator)
@@ -212,6 +215,7 @@ class HttpApi(host: String,
               port: Int,
               requestTimeout: FiniteDuration,
               eventBufferSize: Int,
+              heartbeatInterval: FiniteDuration,
               issueAggregateManager: ActorRef,
               issueRead: ActorRef,
               publishSubscribeMediator: ActorRef)
@@ -223,7 +227,12 @@ class HttpApi(host: String,
   implicit val materializer = ActorMaterializer()
 
   Http(context.system)
-    .bindAndHandle(routes(issueAggregateManager, issueRead, publishSubscribeMediator, requestTimeout, eventBufferSize),
+    .bindAndHandle(routes(issueAggregateManager,
+                          issueRead,
+                          publishSubscribeMediator,
+                          requestTimeout,
+                          eventBufferSize,
+                          heartbeatInterval),
                    host,
                    port)
     .pipeTo(self)

@@ -39,6 +39,8 @@ object Settings {
     val eventBufferSize: Int = config.getInt("http.event-buffer-size")
     val requestTimeout: FiniteDuration =
       FiniteDuration(config.getDuration("http.request-timeout").toNanos, NANOSECONDS)
+    val heartbeatInterval: FiniteDuration =
+      FiniteDuration(config.getDuration("http.heartbeat-interval").toNanos, NANOSECONDS)
   }
 
 }

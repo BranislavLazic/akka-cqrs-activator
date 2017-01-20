@@ -21,7 +21,6 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
-import akka.actor.actorRef2Scala
 
 class IssueAggregateSpec extends WordSpec with Matchers with BeforeAndAfterAll {
 

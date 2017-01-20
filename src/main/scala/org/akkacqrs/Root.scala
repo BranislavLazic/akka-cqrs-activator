@@ -41,6 +41,7 @@ object Root {
                             port: Int,
                             requestTimeout: FiniteDuration,
                             eventBufferSize: Int,
+                            heartbeatInterval: FiniteDuration,
                             issueAggregateManager: ActorRef,
                             issueRead: ActorRef,
                             publishSubscribeMediator: ActorRef) = {
@@ -48,6 +49,7 @@ object Root {
                                   port,
                                   requestTimeout,
                                   eventBufferSize,
+                                  heartbeatInterval,
                                   issueAggregateManager,
                                   issueRead,
                                   publishSubscribeMediator),
@@ -75,6 +77,7 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
                       port,
                       requestTimeout,
                       eventBufferSize,
+                      heartbeatInterval,
                       issueAggregateManager,
                       issueView,
                       publishSubscribeMediator)
