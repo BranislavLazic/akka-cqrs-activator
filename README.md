@@ -1,4 +1,4 @@
-# Akka CQRS activator
+# Akka CQRS activator [![Build Status](https://travis-ci.org/BranislavLazic/akka-cqrs-activator.svg)](https://travis-ci.org/BranislavLazic/akka-cqrs-activator)
 
 ### Issue tracking demo application which shows implementation of event sourcing and CQRS with Akka
 
