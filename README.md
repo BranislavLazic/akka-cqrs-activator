@@ -10,7 +10,7 @@
 
 #### Up and run:
 
-- In root directory execute command: `docker-compose -up d` to start Cassandra
+- In root directory execute command: `docker-compose up -d` to start Cassandra
 - Then execute command: `sbt run` and you should be able to access application at: http://localhost:8000 
 
 ![alt text](images/issue-tracker.gif)
