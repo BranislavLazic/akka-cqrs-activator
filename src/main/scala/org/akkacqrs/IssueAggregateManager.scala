@@ -19,7 +19,7 @@ package org.akkacqrs
 import java.time.LocalDate
 import java.util.UUID
 
-import akka.actor.{ Actor, ActorRef, Props }
+import akka.actor.{ Actor, Props }
 
 import scala.reflect._
 
@@ -40,15 +40,18 @@ class IssueAggregateManager extends Actor {
   implicit val domainEventClassTag: ClassTag[IssueEvent] = classTag[IssueEvent]
 
   override def receive: Receive = {
-    case createIssue @ CreateIssue(id, _, _, date, _) => getIssueAggregate(id, date) forward createIssue
+    case createIssue @ CreateIssue(id, _, _, date, _) =>
+      forwardToIssueAggregate(id, date, createIssue)
     case updateIssueDescription @ UpdateIssue(id, _, _, date) =>
-      getIssueAggregate(id, date) forward updateIssueDescription
-    case closeIssue @ CloseIssue(id, date)   => getIssueAggregate(id, date) forward closeIssue
-    case deleteIssue @ DeleteIssue(id, date) => getIssueAggregate(id, date) forward deleteIssue
+      forwardToIssueAggregate(id, date, updateIssueDescription)
+    case closeIssue @ CloseIssue(id, date) =>
+      forwardToIssueAggregate(id, date, closeIssue)
+    case deleteIssue @ DeleteIssue(id, date) =>
+      forwardToIssueAggregate(id, date, deleteIssue)
   }
 
-  private def getIssueAggregate(id: UUID, date: LocalDate): ActorRef = {
+  private def forwardToIssueAggregate(id: UUID, date: LocalDate, issueCommand: IssueCommand): Unit = {
     val name = s"${ id.toString }-${ date.toString }"
-    context.child(name).getOrElse(context.actorOf(IssueAggregate.props(id, date), name))
+    context.child(name).getOrElse(context.actorOf(IssueAggregate.props(id, date), name)).forward(issueCommand)
   }
 }

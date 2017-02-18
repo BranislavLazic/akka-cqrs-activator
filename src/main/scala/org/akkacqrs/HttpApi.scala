@@ -223,7 +223,6 @@ class HttpApi(host: String,
     with ActorLogging {
   import context.dispatcher
   import HttpApi._
-  implicit val timeout      = Timeout(3.seconds)
   implicit val materializer = ActorMaterializer()
 
   Http(context.system)
