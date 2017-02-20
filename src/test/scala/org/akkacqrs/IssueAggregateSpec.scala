@@ -22,11 +22,9 @@ import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
 
-class IssueAggregateSpec extends WordSpec with Matchers with BeforeAndAfterAll {
+class IssueAggregateSpec extends WordSpec with Matchers with BaseSpec {
 
   import org.akkacqrs.IssueAggregate._
-
-  implicit val system = ActorSystem("issue-tracker-spec-system")
 
   "When issue is not created then IssueAggregate actor" should {
     val sender             = TestProbe()
