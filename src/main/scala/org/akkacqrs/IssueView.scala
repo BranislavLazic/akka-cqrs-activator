@@ -46,7 +46,8 @@ object IssueView {
 
   sealed trait ReadEvent
 
-  final case object TableCreated extends ReadEvent
+  final case object KeyspaceCreated extends ReadEvent
+  final case object TableCreated    extends ReadEvent
 
   object CQLStatements {
     import Settings.CassandraDb._
@@ -111,20 +112,19 @@ class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuer
 
   override def receive: Receive = {
     case CreateKeyspace =>
-      session.executeAsync(CreateKeyspaceStatement).toFuture pipeTo self
-    case rs: ResultSet =>
-      log.info(rs.getExecutionInfo.getStatement.toString)
+      session.executeAsync(CreateKeyspaceStatement).toFuture.map(_ => KeyspaceCreated).pipeTo(self)
+
+    case KeyspaceCreated =>
       context.become(keyspaceInitialized)
       self ! CreateIssueTable
   }
 
   private def keyspaceInitialized: Receive = {
     case CreateIssueTable =>
-      session.executeAsync(CreateTableStatement).toFuture pipeTo self
-    case rs: ResultSet =>
-      log.info(rs.getExecutionInfo.getStatement.toString)
+      session.executeAsync(CreateTableStatement).toFuture.map(_ => TableCreated).pipeTo(self).pipeTo(context.parent)
+
+    case TableCreated =>
       context.become(ready)
-      context.parent ! TableCreated
   }
 
   private def ready: Receive = {
