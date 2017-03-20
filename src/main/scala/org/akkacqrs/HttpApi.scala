@@ -30,14 +30,11 @@ import akka.http.scaladsl.server.Directives._
 import scala.concurrent.duration._
 import akka.pattern._
 import akka.stream.scaladsl.Source
-import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.utils.UUIDs
 import de.heikoseeberger.akkasse.ServerSentEvent
 import org.akkacqrs.IssueAggregate._
 import org.akkacqrs.IssueView.{ GetIssueByDateAndId, GetIssuesByDate }
 
-import collection.JavaConversions._
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
@@ -46,8 +43,6 @@ object HttpApi {
   final case class CreateIssueRequest(date: String, summary: String, description: String)
   final case class UpdateRequest(summary: String, description: String)
   final case class CloseIssueRequest(id: UUID)
-
-  final case class IssueResponse(id: UUID, date: String, summary: String, description: String, status: String)
 
   final val Name = "http-server"
 
@@ -134,8 +129,7 @@ object HttpApi {
         pathPrefix(Segment) { date =>
           get {
             onSuccess(issueView ? GetIssuesByDate(date.toLocalDate)) {
-              case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs))
-              case _: ResultSet                 => complete(StatusCodes.NotFound)
+              case issues: Vector[IssueView.IssueResponse] @unchecked => complete(issues)
             }
           } ~
             // Requests for an issue specified by its UUID
@@ -157,8 +151,7 @@ object HttpApi {
                 } ~
                 get {
                   onSuccess(issueView ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
-                    case rs: ResultSet if rs.nonEmpty => complete(resultSetToIssueResponse(rs).head)
-                    case _: ResultSet                 => complete(StatusCodes.NotFound)
+                    case issues: Vector[IssueView.IssueResponse] @unchecked => complete(issues.head)
                   }
                 } ~
                 delete {
@@ -171,24 +164,6 @@ object HttpApi {
         }
     }
     api ~ assets
-  }
-
-  /**
-    * Converts ResultSet to the collection of IssueResponse instances.
-    *
-    * @param rs the ResultSet
-    * @return collection of IssueResponse instances
-    */
-  def resultSetToIssueResponse(rs: ResultSet): mutable.Buffer[IssueResponse] = {
-    rs.all()
-      .map(row => {
-        val id          = row.getUUID("id")
-        val summary     = row.getString("summary")
-        val dateUpdated = row.getString("date_updated")
-        val description = row.getString("description")
-        val status      = row.getString("issue_status")
-        IssueResponse(id, dateUpdated, summary, description, status)
-      })
   }
 
   def props(host: String,

@@ -29,6 +29,7 @@ import akka.stream.scaladsl.Sink
 import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.utils.UUIDs
 import org.akkacqrs.IssueAggregate._
+import collection.JavaConversions._
 
 /**
   * Creates "read side" Cassandra keyspace and table.
@@ -48,6 +49,8 @@ object IssueView {
 
   final case object KeyspaceCreated extends ReadEvent
   final case object TableCreated    extends ReadEvent
+
+  final case class IssueResponse(id: UUID, date: String, summary: String, description: String, status: String)
 
   object CQLStatements {
     import Settings.CassandraDb._
@@ -77,9 +80,11 @@ object IssueView {
          | VALUES (?, ?, ?, ?, ?);
     """.stripMargin
 
-    final val SelectByDateAndIdStatement: String = s"SELECT * FROM $keyspace.issues WHERE date_updated = ? AND id = ?;"
+    final val SelectByDateAndIdStatement: String =
+      s"SELECT * FROM $keyspace.issues WHERE date_updated = ? AND id = ?;"
 
-    final val SelectByDateStatement: String = s"SELECT * FROM $keyspace.issues WHERE date_updated = ?;"
+    final val SelectByDateStatement: String =
+      s"SELECT * FROM $keyspace.issues WHERE date_updated = ?;"
 
     final val CloseStatement: String =
       s"UPDATE $keyspace.issues SET issue_status = ? WHERE date_updated = ? AND id = ?;"
@@ -87,7 +92,8 @@ object IssueView {
     final val UpdateStatement: String =
       s"UPDATE $keyspace.issues SET summary =?, description = ? WHERE date_updated = ? and id = ?;"
 
-    final val DeleteStatement: String = s"DELETE FROM $keyspace.issues WHERE date_updated = ? and id = ?;"
+    final val DeleteStatement: String =
+      s"DELETE FROM $keyspace.issues WHERE date_updated = ? and id = ?;"
   }
 
   def props(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2) =
@@ -150,8 +156,29 @@ class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuer
       session.executeAsync(DeleteStatement, event.date.toString, event.id)
 
     case GetIssueByDateAndId(date, id) =>
-      session.executeAsync(SelectByDateAndIdStatement, date.toString, id).toFuture pipeTo sender()
+      session
+        .executeAsync(SelectByDateAndIdStatement, date.toString, id)
+        .toFuture
+        .map(resultSetToIssueResponse)
+        .pipeTo(sender())
 
-    case GetIssuesByDate(date) => session.executeAsync(SelectByDateStatement, date.toString).toFuture pipeTo sender()
+    case GetIssuesByDate(date) =>
+      session
+        .executeAsync(SelectByDateStatement, date.toString)
+        .toFuture
+        .map(resultSetToIssueResponse)
+        .pipeTo(sender())
+  }
+  private def resultSetToIssueResponse(rs: ResultSet) = {
+    rs.all()
+      .map(row => {
+        val id          = row.getUUID("id")
+        val summary     = row.getString("summary")
+        val dateUpdated = row.getString("date_updated")
+        val description = row.getString("description")
+        val status      = row.getString("issue_status")
+        IssueResponse(id, dateUpdated, summary, description, status)
+      })
+      .toVector
   }
 }
