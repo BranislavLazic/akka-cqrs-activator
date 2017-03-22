@@ -127,39 +127,39 @@ object HttpApi {
         } ~
         // Requests for issues by specific date
         pathPrefix(Segment) { date =>
-          get {
-            onSuccess(issueView ? GetIssuesByDate(date.toLocalDate)) {
-              case issues: Vector[IssueView.IssueResponse] @unchecked => complete(issues)
-            }
-          } ~
-            // Requests for an issue specified by its UUID
-            path(JavaUUID) { id =>
+          // Requests for an issue specified by its UUID
+          path(JavaUUID) { id =>
+            put {
+              entity(as[UpdateRequest]) {
+                case UpdateRequest(summary, description) =>
+                  onSuccess(issueAggregateManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
+                    case IssueUpdated(_, _, _, _)  => complete("Issue updated.")
+                    case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
+                  }
+              }
+            } ~
               put {
-                entity(as[UpdateRequest]) {
-                  case UpdateRequest(summary, description) =>
-                    onSuccess(issueAggregateManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
-                      case IssueUpdated(_, _, _, _)  => complete("Issue updated.")
-                      case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
-                    }
+                onSuccess(issueAggregateManager ? CloseIssue(id, date.toLocalDate)) {
+                  case IssueClosed(_, _)         => complete("Issue has been closed.")
+                  case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
                 }
               } ~
-                put {
-                  onSuccess(issueAggregateManager ? CloseIssue(id, date.toLocalDate)) {
-                    case IssueClosed(_, _)         => complete("Issue has been closed.")
-                    case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
-                  }
-                } ~
-                get {
-                  onSuccess(issueView ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
-                    case issues: Vector[IssueView.IssueResponse] @unchecked => complete(issues.head)
-                  }
-                } ~
-                delete {
-                  onSuccess(issueAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
-                    case IssueDeleted(_, _)        => complete("Issue has been deleted.")
-                    case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
-                  }
+              get {
+                onSuccess(issueView ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
+                  case issues: Vector[IssueView.IssueResponse] @unchecked => complete(issues.head)
                 }
+              } ~
+              delete {
+                onSuccess(issueAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
+                  case IssueDeleted(_, _)        => complete("Issue has been deleted.")
+                  case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
+                }
+              }
+          } ~
+            get {
+              onSuccess(issueView ? GetIssuesByDate(date.toLocalDate)) {
+                case issues: Vector[IssueView.IssueResponse] @unchecked => complete(issues)
+              }
             }
         }
     }
