@@ -24,34 +24,34 @@ import akka.actor.{ Actor, Props }
 import scala.reflect._
 
 /**
-  * Used to manage IssueAggregate actors.
-  * If an IssueAggregate actor doesn't exist already as a child of an IssueAggregateManager,
-  * then it will be created. All command messages are received by IssueManager and forwarded to the
+  * Used to manage IssueRepository actors.
+  * If an IssueRepository actor doesn't exist already as a child of an IssueRepositoryManager,
+  * then it will be created. All command messages are received by IssueRepositoryManager and forwarded to the
   * child actors.
   */
-object IssueAggregateManager {
-  final val Name = "issue-aggregate-manager"
-  def props      = Props(new IssueAggregateManager)
+object IssueRepositoryManager {
+  final val Name = "issue-repository-manager"
+  def props      = Props(new IssueRepositoryManager)
 }
 
-class IssueAggregateManager extends Actor {
-  import IssueAggregate._
+class IssueRepositoryManager extends Actor {
+  import IssueRepository._
 
   implicit val domainEventClassTag: ClassTag[IssueEvent] = classTag[IssueEvent]
 
   override def receive: Receive = {
     case createIssue @ CreateIssue(id, _, _, date, _) =>
-      forwardToIssueAggregate(id, date, createIssue)
+      forwardToIssueRepository(id, date, createIssue)
     case updateIssueDescription @ UpdateIssue(id, _, _, date) =>
-      forwardToIssueAggregate(id, date, updateIssueDescription)
+      forwardToIssueRepository(id, date, updateIssueDescription)
     case closeIssue @ CloseIssue(id, date) =>
-      forwardToIssueAggregate(id, date, closeIssue)
+      forwardToIssueRepository(id, date, closeIssue)
     case deleteIssue @ DeleteIssue(id, date) =>
-      forwardToIssueAggregate(id, date, deleteIssue)
+      forwardToIssueRepository(id, date, deleteIssue)
   }
 
-  private def forwardToIssueAggregate(id: UUID, date: LocalDate, issueCommand: IssueCommand): Unit = {
+  private def forwardToIssueRepository(id: UUID, date: LocalDate, issueCommand: IssueCommand): Unit = {
     val name = s"${ id.toString }-${ date.toString }"
-    context.child(name).getOrElse(context.actorOf(IssueAggregate.props(id, date), name)).forward(issueCommand)
+    context.child(name).getOrElse(context.actorOf(IssueRepository.props(id, date), name)).forward(issueCommand)
   }
 }

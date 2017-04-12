@@ -32,7 +32,7 @@ import akka.pattern._
 import akka.stream.scaladsl.Source
 import com.datastax.driver.core.utils.UUIDs
 import de.heikoseeberger.akkasse.ServerSentEvent
-import org.akkacqrs.IssueAggregate._
+import org.akkacqrs.IssueRepository._
 import org.akkacqrs.IssueView.{ GetIssueByDateAndId, GetIssuesByDate }
 
 import scala.concurrent.ExecutionContext
@@ -46,7 +46,7 @@ object HttpApi {
 
   final val Name = "http-server"
 
-  def routes(issueAggregateManager: ActorRef,
+  def routes(issueRepositoryManager: ActorRef,
              issueView: ActorRef,
              publishSubscribeMediator: ActorRef,
              requestTimeout: FiniteDuration,
@@ -82,11 +82,14 @@ object HttpApi {
       */
     def eventToServerSentEvent(event: IssueEvent): ServerSentEvent = {
       event match {
-        case issueCreated: IssueCreated => ServerSentEvent(issueCreated.asJson.noSpaces, "issue-created")
+        case issueCreated: IssueCreated =>
+          ServerSentEvent(issueCreated.asJson.noSpaces, "issue-created")
         case issueUpdated: IssueUpdated =>
           ServerSentEvent(issueUpdated.asJson.noSpaces, "issue-updated")
-        case issueClosed: IssueClosed   => ServerSentEvent(issueClosed.asJson.noSpaces, "issue-closed")
-        case issueDeleted: IssueDeleted => ServerSentEvent(issueDeleted.asJson.noSpaces, "issue-deleted")
+        case issueClosed: IssueClosed =>
+          ServerSentEvent(issueClosed.asJson.noSpaces, "issue-closed")
+        case issueDeleted: IssueDeleted =>
+          ServerSentEvent(issueDeleted.asJson.noSpaces, "issue-deleted")
         case unprocessedIssue: IssueUnprocessed =>
           ServerSentEvent(unprocessedIssue.message.asJson.noSpaces, "issue-unprocessed")
       }
@@ -108,14 +111,15 @@ object HttpApi {
                      "Name of the summary is too long. Maximum length is 100 characters.")
           case CreateIssueRequest(date: String, summary: String, description: String) =>
             onSuccess(
-              issueAggregateManager ? CreateIssue(UUIDs.timeBased(),
-                                                  summary,
-                                                  description,
-                                                  date.toLocalDate,
-                                                  IssueOpenedStatus)
+              issueRepositoryManager ? CreateIssue(UUIDs.timeBased(),
+                                                   summary,
+                                                   description,
+                                                   date.toLocalDate,
+                                                   IssueOpenedStatus)
             ) {
               case IssueCreated(_, _, _, _, _) => complete("Issue created.")
-              case IssueUnprocessed(message)   => complete(StatusCodes.UnprocessableEntity, message)
+              case IssueUnprocessed(message) =>
+                complete(StatusCodes.UnprocessableEntity, message)
             }
         }
       } ~
@@ -132,33 +136,39 @@ object HttpApi {
             put {
               entity(as[UpdateRequest]) {
                 case UpdateRequest(summary, description) =>
-                  onSuccess(issueAggregateManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
-                    case IssueUpdated(_, _, _, _)  => complete("Issue updated.")
-                    case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
+                  onSuccess(issueRepositoryManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
+                    case IssueUpdated(_, _, _, _) => complete("Issue updated.")
+                    case IssueUnprocessed(message) =>
+                      complete(StatusCodes.UnprocessableEntity -> message)
                   }
               }
             } ~
               put {
-                onSuccess(issueAggregateManager ? CloseIssue(id, date.toLocalDate)) {
-                  case IssueClosed(_, _)         => complete("Issue has been closed.")
-                  case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
+                onSuccess(issueRepositoryManager ? CloseIssue(id, date.toLocalDate)) {
+                  case IssueClosed(_, _) => complete("Issue has been closed.")
+                  case IssueUnprocessed(message) =>
+                    complete(StatusCodes.UnprocessableEntity -> message)
                 }
               } ~
               get {
                 onSuccess(issueView ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
-                  case issues: Vector[IssueView.IssueResponse] @unchecked => complete(issues.head)
+                  case issues: Vector[IssueView.IssueResponse] @unchecked =>
+                    complete(issues.head)
                 }
               } ~
               delete {
-                onSuccess(issueAggregateManager ? DeleteIssue(id, date.toLocalDate)) {
-                  case IssueDeleted(_, _)        => complete("Issue has been deleted.")
-                  case IssueUnprocessed(message) => complete(StatusCodes.UnprocessableEntity -> message)
+                onSuccess(issueRepositoryManager ? DeleteIssue(id, date.toLocalDate)) {
+                  case IssueDeleted(_, _) =>
+                    complete("Issue has been deleted.")
+                  case IssueUnprocessed(message) =>
+                    complete(StatusCodes.UnprocessableEntity -> message)
                 }
               }
           } ~
             get {
               onSuccess(issueView ? GetIssuesByDate(date.toLocalDate)) {
-                case issues: Vector[IssueView.IssueResponse] @unchecked => complete(issues)
+                case issues: Vector[IssueView.IssueResponse] @unchecked =>
+                  complete(issues)
               }
             }
         }
@@ -171,7 +181,7 @@ object HttpApi {
             requestTimeout: FiniteDuration,
             eventBufferSize: Int,
             heartbeatInterval: FiniteDuration,
-            issueAggregateManager: ActorRef,
+            issueRepositoryManager: ActorRef,
             issueRead: ActorRef,
             publishSubscribeMediator: ActorRef) =
     Props(
@@ -180,7 +190,7 @@ object HttpApi {
                   requestTimeout,
                   eventBufferSize,
                   heartbeatInterval: FiniteDuration,
-                  issueAggregateManager,
+                  issueRepositoryManager,
                   issueRead,
                   publishSubscribeMediator)
     )
@@ -191,7 +201,7 @@ class HttpApi(host: String,
               requestTimeout: FiniteDuration,
               eventBufferSize: Int,
               heartbeatInterval: FiniteDuration,
-              issueAggregateManager: ActorRef,
+              issueRepositoryManager: ActorRef,
               issueRead: ActorRef,
               publishSubscribeMediator: ActorRef)
     extends Actor
@@ -201,7 +211,7 @@ class HttpApi(host: String,
   implicit val materializer = ActorMaterializer()
 
   Http(context.system)
-    .bindAndHandle(routes(issueAggregateManager,
+    .bindAndHandle(routes(issueRepositoryManager,
                           issueRead,
                           publishSubscribeMediator,
                           requestTimeout,
@@ -212,6 +222,7 @@ class HttpApi(host: String,
     .pipeTo(self)
 
   override def receive: Receive = {
-    case Http.ServerBinding(socketAddress) => log.info(s"Server started at: $socketAddress")
+    case Http.ServerBinding(socketAddress) =>
+      log.info(s"Server started at: $socketAddress")
   }
 }

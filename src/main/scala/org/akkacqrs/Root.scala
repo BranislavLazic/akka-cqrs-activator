@@ -26,8 +26,8 @@ import scala.concurrent.duration.FiniteDuration
 object Root {
   final val Name = "root"
 
-  private def createIssueAggregateManager(context: ActorContext) = {
-    context.actorOf(IssueAggregateManager.props, IssueAggregateManager.Name)
+  private def createIssueRepositoryManager(context: ActorContext) = {
+    context.actorOf(IssueRepositoryManager.props, IssueRepositoryManager.Name)
   }
 
   private def createIssueView(context: ActorContext,
@@ -42,7 +42,7 @@ object Root {
                             requestTimeout: FiniteDuration,
                             eventBufferSize: Int,
                             heartbeatInterval: FiniteDuration,
-                            issueAggregateManager: ActorRef,
+                            issueRepositoryManager: ActorRef,
                             issueRead: ActorRef,
                             publishSubscribeMediator: ActorRef) = {
     context.actorOf(HttpApi.props(host,
@@ -50,7 +50,7 @@ object Root {
                                   requestTimeout,
                                   eventBufferSize,
                                   heartbeatInterval,
-                                  issueAggregateManager,
+                                  issueRepositoryManager,
                                   issueRead,
                                   publishSubscribeMediator),
                     HttpApi.Name)
@@ -64,7 +64,7 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
   import Settings.Http._
 
   val publishSubscribeMediator: ActorRef = context.watch(DistributedPubSub(context.system).mediator)
-  val issueAggregateManager: ActorRef    = context.watch(createIssueAggregateManager(context))
+  val issueRepositoryManager: ActorRef   = context.watch(createIssueRepositoryManager(context))
   val issueView: ActorRef =
     context.watch(createIssueView(context, publishSubscribeMediator, readJournal))
   issueView ! CreateKeyspace
@@ -78,7 +78,7 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
                       requestTimeout,
                       eventBufferSize,
                       heartbeatInterval,
-                      issueAggregateManager,
+                      issueRepositoryManager,
                       issueView,
                       publishSubscribeMediator)
       )

@@ -37,7 +37,7 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
   import de.heikoseeberger.akkasse.EventStreamMarshalling._
   import de.heikoseeberger.akkahttpcirce.CirceSupport._
   import org.akkacqrs.HttpApi._
-  import org.akkacqrs.IssueAggregate._
+  import org.akkacqrs.IssueRepository._
   import io.circe.generic.auto._
   import io.circe.syntax._
 
@@ -54,12 +54,12 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
 
   "HttpApi" should {
     "result in status code PermanentRedirect to index.html upon GET /" in {
-      val issueRead             = TestProbe()
-      val pubSubMediator        = TestProbe()
-      val issueAggregateManager = TestProbe()
-      implicit val materializer = ActorMaterializer()
+      val issueRead              = TestProbe()
+      val pubSubMediator         = TestProbe()
+      val issueRepositoryManager = TestProbe()
+      implicit val materializer  = ActorMaterializer()
 
-      Get("/") ~> routes(issueAggregateManager.ref,
+      Get("/") ~> routes(issueRepositoryManager.ref,
                          issueRead.ref,
                          pubSubMediator.ref,
                          timeout,
@@ -71,11 +71,11 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
     }
 
     "result in status code OK and message upon sending POST /issues" in {
-      val issueRead             = TestProbe()
-      val pubSubMediator        = TestProbe()
-      val issueAggregateManager = TestProbe()
+      val issueRead              = TestProbe()
+      val pubSubMediator         = TestProbe()
+      val issueRepositoryManager = TestProbe()
 
-      issueAggregateManager.setAutoPilot(new AutoPilot {
+      issueRepositoryManager.setAutoPilot(new AutoPilot {
         override def run(sender: ActorRef, msg: Any) = msg match {
           case CreateIssue(_, `summary`, `description`, `date`, IssueOpenedStatus) =>
             sender ! IssueCreated(id, summary, description, date, IssueOpenedStatus)
@@ -84,7 +84,7 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       })
 
       Post("/issues", CreateIssueRequest(date.toString, summary, description)) ~>
-        routes(issueAggregateManager.ref,
+        routes(issueRepositoryManager.ref,
                issueRead.ref,
                pubSubMediator.ref,
                timeout,
@@ -96,11 +96,11 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
     }
 
     s"result in status code OK and message upon sending PUT /issues/${ date.toString }/${ id.toString } when updating an issue" in {
-      val issueRead             = TestProbe()
-      val pubSubMediator        = TestProbe()
-      val issueAggregateManager = TestProbe()
+      val issueRead              = TestProbe()
+      val pubSubMediator         = TestProbe()
+      val issueRepositoryManager = TestProbe()
 
-      issueAggregateManager.setAutoPilot(new AutoPilot {
+      issueRepositoryManager.setAutoPilot(new AutoPilot {
         override def run(sender: ActorRef, msg: Any) = msg match {
           case UpdateIssue(`id`, `summary`, `description`, `date`) =>
             sender ! IssueUpdated(id, summary, description, date)
@@ -109,7 +109,7 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       })
 
       Put(s"/issues/${ date.toString }/${ id.toString }", UpdateRequest(summary, description)) ~>
-        routes(issueAggregateManager.ref,
+        routes(issueRepositoryManager.ref,
                issueRead.ref,
                pubSubMediator.ref,
                timeout,
@@ -121,11 +121,11 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
     }
 
     s"result in status code OK and message upon sending PUT /issues/${ date.toString }/${ id.toString } when closing an issue" in {
-      val issueRead             = TestProbe()
-      val pubSubMediator        = TestProbe()
-      val issueAggregateManager = TestProbe()
+      val issueRead              = TestProbe()
+      val pubSubMediator         = TestProbe()
+      val issueRepositoryManager = TestProbe()
 
-      issueAggregateManager.setAutoPilot(new AutoPilot {
+      issueRepositoryManager.setAutoPilot(new AutoPilot {
         override def run(sender: ActorRef, msg: Any) = msg match {
           case CloseIssue(`id`, `date`) =>
             sender ! IssueClosed(id, date)
@@ -134,7 +134,7 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       })
 
       Put(s"/issues/${ date.toString }/${ id.toString }") ~>
-        routes(issueAggregateManager.ref,
+        routes(issueRepositoryManager.ref,
                issueRead.ref,
                pubSubMediator.ref,
                timeout,
@@ -146,11 +146,11 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
     }
 
     s"result in status code OK and message upon sending DELETE /issues/${ date.toString }/${ id.toString }" in {
-      val issueRead             = TestProbe()
-      val pubSubMediator        = TestProbe()
-      val issueAggregateManager = TestProbe()
+      val issueRead              = TestProbe()
+      val pubSubMediator         = TestProbe()
+      val issueRepositoryManager = TestProbe()
 
-      issueAggregateManager.setAutoPilot(new AutoPilot {
+      issueRepositoryManager.setAutoPilot(new AutoPilot {
         override def run(sender: ActorRef, msg: Any) = msg match {
           case DeleteIssue(`id`, `date`) =>
             sender ! IssueDeleted(id, date)
@@ -159,7 +159,7 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       })
 
       Delete(s"/issues/${ date.toString }/${ id.toString }") ~>
-        routes(issueAggregateManager.ref,
+        routes(issueRepositoryManager.ref,
                issueRead.ref,
                pubSubMediator.ref,
                timeout,

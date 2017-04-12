@@ -22,7 +22,7 @@ import java.util.UUID
 import akka.actor.Props
 import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
-import org.akkacqrs.IssueAggregate._
+import org.akkacqrs.IssueRepository._
 
 import scala.reflect._
 /*
@@ -56,7 +56,7 @@ Lifecycle of an issue:
          +                           +                   +                            +
     Create issue                 Close issue         Delete issue                Delete issue
  */
-object IssueAggregate {
+object IssueRepository {
 
   sealed trait IssueCommand
 
@@ -104,10 +104,10 @@ object IssueAggregate {
 
   case object Empty extends IssueData
 
-  def props(id: UUID, date: LocalDate) = Props(new IssueAggregate(id, date))
+  def props(id: UUID, date: LocalDate) = Props(new IssueRepository(id, date))
 }
 
-class IssueAggregate(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueEvent])
+class IssueRepository(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueEvent])
     extends PersistentFSM[IssueState, IssueData, IssueEvent] {
 
   override def persistenceId: String = s"${ id.toString }-${ date.toString }"

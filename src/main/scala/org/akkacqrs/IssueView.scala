@@ -28,7 +28,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.utils.UUIDs
-import org.akkacqrs.IssueAggregate._
+import org.akkacqrs.IssueRepository._
 import collection.JavaConversions._
 
 /**

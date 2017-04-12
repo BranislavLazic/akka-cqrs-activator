@@ -22,11 +22,11 @@ import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
 
-class IssueAggregateSpec extends WordSpec with Matchers with BaseSpec {
+class IssueRepositorySpec extends WordSpec with Matchers with BaseSpec {
 
-  import org.akkacqrs.IssueAggregate._
+  import org.akkacqrs.IssueRepository._
 
-  "When issue is not created then IssueAggregate actor" should {
+  "When issue is not created then IssueRepository actor" should {
     val sender             = TestProbe()
     implicit val senderRef = sender.ref
     val uuid               = UUID.randomUUID()
@@ -35,15 +35,15 @@ class IssueAggregateSpec extends WordSpec with Matchers with BaseSpec {
     val date               = LocalDate.now()
     val status             = IssueOpenedStatus
 
-    val issueAggregate = system.actorOf(IssueAggregate.props(uuid, date))
+    val issueRepository = system.actorOf(IssueRepository.props(uuid, date))
 
     "correctly create a new issue" in {
-      issueAggregate ! CreateIssue(uuid, summary, description, date, status)
+      issueRepository ! CreateIssue(uuid, summary, description, date, status)
       sender.expectMsg(IssueCreated(uuid, summary, description, date, status))
     }
 
     "not create an issue with same id again" in {
-      issueAggregate ! CreateIssue(uuid, summary, description, date, status)
+      issueRepository ! CreateIssue(uuid, summary, description, date, status)
       sender.expectMsg(IssueUnprocessed("Issue has been already created."))
     }
 
@@ -51,7 +51,7 @@ class IssueAggregateSpec extends WordSpec with Matchers with BaseSpec {
       val updatedIssueDescription = "Updated issue description"
       val updatedIssueSummary     = "Updated summary"
       val date                    = LocalDate.now()
-      issueAggregate ! UpdateIssue(uuid, updatedIssueSummary, updatedIssueDescription, date)
+      issueRepository ! UpdateIssue(uuid, updatedIssueSummary, updatedIssueDescription, date)
       sender.expectMsg(IssueUpdated(uuid, updatedIssueSummary, updatedIssueDescription, date))
     }
 
@@ -59,51 +59,51 @@ class IssueAggregateSpec extends WordSpec with Matchers with BaseSpec {
       val updatedIssueDescription = "Updated issue description second time"
       val updatedIssueSummary     = "Updated summary"
       val date                    = LocalDate.now()
-      issueAggregate ! UpdateIssue(uuid, updatedIssueSummary, updatedIssueDescription, date)
+      issueRepository ! UpdateIssue(uuid, updatedIssueSummary, updatedIssueDescription, date)
       sender.expectMsg(IssueUpdated(uuid, updatedIssueSummary, updatedIssueDescription, date))
     }
 
     "correctly close an issue" in {
-      issueAggregate ! CloseIssue(uuid, date)
+      issueRepository ! CloseIssue(uuid, date)
       sender.expectMsg(IssueClosed(uuid, date))
     }
 
     "not close an issue again" in {
-      issueAggregate ! CloseIssue(uuid, date)
+      issueRepository ! CloseIssue(uuid, date)
       sender.expectMsg(IssueUnprocessed("Issue has been closed. Cannot update or close again."))
     }
 
     "correctly delete an issue" in {
-      issueAggregate ! DeleteIssue(uuid, date)
+      issueRepository ! DeleteIssue(uuid, date)
       sender.expectMsg(IssueDeleted(uuid, date))
     }
 
     "not delete an issue again" in {
-      issueAggregate ! DeleteIssue(uuid, date)
+      issueRepository ! DeleteIssue(uuid, date)
       sender.expectMsg(IssueUnprocessed("Issue has been deleted. Cannot update, close or delete again."))
     }
   }
 
-  "When issue is not being created then IssueAggregate actor" should {
+  "When issue is not being created then IssueRepository actor" should {
     val sender             = TestProbe()
     implicit val senderRef = sender.ref
     val uuid               = UUID.randomUUID()
     val date               = LocalDate.now()
 
-    val issueAggregate = system.actorOf(IssueAggregate.props(uuid, date))
+    val issueRepository = system.actorOf(IssueRepository.props(uuid, date))
 
     "not update an issue description" in {
-      issueAggregate ! UpdateIssue(uuid, "Updated summary", "Updated description", date)
+      issueRepository ! UpdateIssue(uuid, "Updated summary", "Updated description", date)
       sender.expectMsg(IssueUnprocessed("Create an issue first."))
     }
 
     "not close an issue" in {
-      issueAggregate ! CloseIssue(uuid, date)
+      issueRepository ! CloseIssue(uuid, date)
       sender.expectMsg(IssueUnprocessed("Create an issue first."))
     }
 
     "not delete an issue" in {
-      issueAggregate ! DeleteIssue(uuid, date)
+      issueRepository ! DeleteIssue(uuid, date)
       sender.expectMsg(IssueUnprocessed("Create an issue first."))
     }
   }

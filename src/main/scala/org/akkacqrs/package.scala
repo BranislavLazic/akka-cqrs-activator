@@ -21,7 +21,7 @@ import java.time.format.DateTimeFormatter
 
 import com.google.common.util.concurrent.{ FutureCallback, Futures, ListenableFuture }
 import io.circe.Encoder
-import org.akkacqrs.IssueAggregate.IssueStatus
+import org.akkacqrs.IssueRepository.IssueStatus
 
 import scala.concurrent.{ Future, Promise }
 import scala.reflect.{ ClassTag, classTag }

@@ -24,7 +24,7 @@ import akka.persistence.journal.{ Tagged, WriteEventAdapter }
   * specified in IssueTaggingEventAdapter.
   */
 class IssueTaggingEventAdapter extends WriteEventAdapter {
-  import IssueAggregate._
+  import IssueRepository._
   override def manifest(event: Any): String = ""
 
   def withTag(event: IssueEvent, tag: String) = Tagged(event, Set(tag))
