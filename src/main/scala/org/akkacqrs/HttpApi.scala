@@ -196,14 +196,14 @@ object HttpApi {
     )
 }
 
-class HttpApi(host: String,
-              port: Int,
-              requestTimeout: FiniteDuration,
-              eventBufferSize: Int,
-              heartbeatInterval: FiniteDuration,
-              issueRepositoryManager: ActorRef,
-              issueRead: ActorRef,
-              publishSubscribeMediator: ActorRef)
+final class HttpApi(host: String,
+                    port: Int,
+                    requestTimeout: FiniteDuration,
+                    eventBufferSize: Int,
+                    heartbeatInterval: FiniteDuration,
+                    issueRepositoryManager: ActorRef,
+                    issueRead: ActorRef,
+                    publishSubscribeMediator: ActorRef)
     extends Actor
     with ActorLogging {
   import context.dispatcher

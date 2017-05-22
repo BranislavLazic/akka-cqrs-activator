@@ -40,15 +40,8 @@ object IssueView {
 
   sealed trait ReadCommand
 
-  case object CreateKeyspace                                      extends ReadCommand
-  case object CreateIssueTable                                    extends ReadCommand
   final case class GetIssuesByDate(date: LocalDate)               extends ReadCommand
   final case class GetIssueByDateAndId(date: LocalDate, id: UUID) extends ReadCommand
-
-  sealed trait ReadEvent
-
-  final case object KeyspaceCreated extends ReadEvent
-  final case object TableCreated    extends ReadEvent
 
   final case class IssueResponse(id: UUID, date: String, summary: String, description: String, status: String)
 
@@ -100,7 +93,7 @@ object IssueView {
     Props(new IssueView(publishSubscribeMediator, readJournal))
 }
 
-class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2)
+final class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2)
     extends CassandraActor
     with ActorLogging {
 
@@ -108,7 +101,8 @@ class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuer
   import IssueView.CQLStatements._
   import context.dispatcher
 
-  implicit val materializer = ActorMaterializer()
+  private implicit val materializer = ActorMaterializer()
+
   readJournal
     .eventsByTag("issue-tag", TimeBasedUUID(UUIDs.timeBased()))
     .map {
@@ -117,23 +111,6 @@ class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuer
     .runWith(Sink.actorRef(self, "completed"))
 
   override def receive: Receive = {
-    case CreateKeyspace =>
-      session.executeAsync(CreateKeyspaceStatement).toFuture.map(_ => KeyspaceCreated).pipeTo(self)
-
-    case KeyspaceCreated =>
-      context.become(keyspaceInitialized)
-      self ! CreateIssueTable
-  }
-
-  private def keyspaceInitialized: Receive = {
-    case CreateIssueTable =>
-      session.executeAsync(CreateTableStatement).toFuture.map(_ => TableCreated).pipeTo(self).pipeTo(context.parent)
-
-    case TableCreated =>
-      context.become(ready)
-  }
-
-  private def ready: Receive = {
     case event: IssueCreated =>
       publishSubscribeMediator ! Publish(className[IssueEvent], event)
       session.executeAsync(InsertStatement,

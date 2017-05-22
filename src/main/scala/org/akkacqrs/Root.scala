@@ -19,7 +19,6 @@ package org.akkacqrs
 import akka.actor.{ Actor, ActorContext, ActorLogging, ActorRef, Props, Terminated }
 import akka.cluster.pubsub.DistributedPubSub
 import akka.persistence.query.scaladsl.EventsByTagQuery2
-import org.akkacqrs.IssueView.{ CreateKeyspace, TableCreated }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -59,7 +58,7 @@ object Root {
   def props(readJournal: EventsByTagQuery2) = Props(new Root(readJournal))
 }
 
-class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
+final class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
   import Root._
   import Settings.Http._
 
@@ -67,21 +66,17 @@ class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
   val issueRepositoryManager: ActorRef   = context.watch(createIssueRepositoryManager(context))
   val issueView: ActorRef =
     context.watch(createIssueView(context, publishSubscribeMediator, readJournal))
-  issueView ! CreateKeyspace
+  createHttpApi(context,
+                host,
+                port,
+                requestTimeout,
+                eventBufferSize,
+                heartbeatInterval,
+                issueRepositoryManager,
+                issueView,
+                publishSubscribeMediator)
 
   override def receive: Receive = {
-    case TableCreated =>
-      context.watch(
-        createHttpApi(context,
-                      host,
-                      port,
-                      requestTimeout,
-                      eventBufferSize,
-                      heartbeatInterval,
-                      issueRepositoryManager,
-                      issueView,
-                      publishSubscribeMediator)
-      )
     case Terminated(actor) =>
       log.info(s"Actor has been terminated: ${ actor.path }")
       context.system.terminate()

@@ -107,7 +107,7 @@ object IssueRepository {
   def props(id: UUID, date: LocalDate) = Props(new IssueRepository(id, date))
 }
 
-class IssueRepository(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueEvent])
+final class IssueRepository(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueEvent])
     extends PersistentFSM[IssueState, IssueData, IssueEvent] {
 
   override def persistenceId: String = s"${ id.toString }-${ date.toString }"

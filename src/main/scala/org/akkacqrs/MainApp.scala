@@ -20,8 +20,12 @@ import akka.actor.ActorSystem
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.PersistenceQuery
 
-object MainApp extends App {
-  val system      = ActorSystem("issue-tracker-system")
-  val readJournal = PersistenceQuery(system).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
-  val root        = system.actorOf(Root.props(readJournal), Root.Name)
+object MainApp {
+
+  def main(args: Array[String]): Unit = {
+    val system = ActorSystem("issue-tracker-system")
+    SchemaInitializator(Vector("/schema.cql"))
+    val readJournal = PersistenceQuery(system).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
+    system.actorOf(Root.props(readJournal), Root.Name)
+  }
 }
