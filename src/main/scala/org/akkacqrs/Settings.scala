@@ -27,10 +27,8 @@ object Settings {
   object CassandraDb {
     val contactPoints: Array[String] =
       config.getStringList("cassandra.read.contact-points").toArray.map(i => i.toString)
-    val port: Int                           = config.getInt("cassandra.read.port")
-    val keyspace: String                    = config.getString("cassandra.read.keyspace")
-    val keyspaceReplicationStrategy: String = config.getString("cassandra.read.keyspace-replication.class")
-    val keyspaceReplicationFactor: Int      = config.getInt("cassandra.read.keyspace-replication.replication-factor")
+    val port: Int        = config.getInt("cassandra.read.port")
+    val keyspace: String = config.getString("cassandra.read.keyspace")
   }
 
   object Http {

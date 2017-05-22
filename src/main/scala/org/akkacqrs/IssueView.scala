@@ -48,25 +48,6 @@ object IssueView {
   object CQLStatements {
     import Settings.CassandraDb._
 
-    final val CreateKeyspaceStatement: String =
-      s"""
-         |CREATE KEYSPACE IF NOT EXISTS $keyspace
-         |  WITH REPLICATION = { 'class' : '$keyspaceReplicationStrategy', 'replication_factor' : $keyspaceReplicationFactor };
-    """.stripMargin
-
-    final val CreateTableStatement: String =
-      s"""
-         |CREATE TABLE IF NOT EXISTS $keyspace.issues (
-         |  id timeuuid,
-         |  summary varchar,
-         |  description text,
-         |  date_updated varchar,
-         |  issue_status text,
-         |  PRIMARY KEY ((date_updated), id)
-         |) WITH CLUSTERING ORDER BY (id ASC);
-         |
-       |""".stripMargin
-
     final val InsertStatement: String =
       s"""
          |INSERT INTO $keyspace.issues (id, summary, description, date_updated, issue_status)
