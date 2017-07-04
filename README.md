@@ -27,11 +27,11 @@ and "read side" data store should be separated.
 #### Write side
 
 On the write side, Akka Persistent FSM actor is being used to store current state and to define behavior.
-In our case - IssueAggregate.
-IssueAggregateManager is being used to manage creation of IssueAggregate actors. 
-Each time when new issue is being created, new IssueAggregate actor is being created with unique id. Therefore,
+In our case - IssueRepository.
+IssueRepositoryManager is being used to manage creation of IssueRepository actors. 
+Each time when new issue is being created, new IssueRepository actor is being created with unique id. Therefore,
 one actor per issue. The unique id is composed from time UUID and date (which is date of creation).
-If the actor is not existing in the context of IssueAggregateManager, then the actor is being created as a new one, or recovered 
+If the actor is not existing in the context of IssueRepositoryManager, then the actor is being created as a new one, or recovered 
 by provided id. In case of recovery, events will be replayed and actor will be recovered to its
 latest state. 
 
@@ -41,7 +41,7 @@ Deleting an issue before it's created, closing an issue which is deleted, updati
 Eventually, actor will pass through four states. Idle, IssueCreatedState, IssueClosedState 
 and IssueDeletedState.
 
-Each IssueAggregate actor is being persisted with common tag - "issue-tag". Since id is not common, we will use
+Each IssueRepository actor is being persisted with common tag - "issue-tag". Since id is not common, we will use
 Akka Persistence Query to subscribe to events by a common tag.
 
 #### Read side
