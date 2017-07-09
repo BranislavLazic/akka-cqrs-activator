@@ -3,7 +3,6 @@ lazy val `akka-cqrs-activator` = project
   .enablePlugins(AutomateHeaderPlugin, GitVersioning)
 
 libraryDependencies ++= Vector(
-  Library.akkaKryoSerialization,
   Library.akkaHttp,
   Library.akkaHttpJson,
   Library.akkaPersistence,
@@ -17,3 +16,7 @@ libraryDependencies ++= Vector(
 
 initialCommands := """|import org.akkacqrs._
                       |""".stripMargin
+
+PB.targets in Compile := Seq(
+  scalapb.gen() -> (sourceManaged in Compile).value
+)

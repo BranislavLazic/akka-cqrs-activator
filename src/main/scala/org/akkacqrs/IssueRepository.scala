@@ -23,6 +23,7 @@ import akka.actor.Props
 import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
 import org.akkacqrs.IssueRepository._
+import java.io.{ Serializable => JavaSerializable }
 
 import scala.reflect._
 /*
@@ -58,7 +59,11 @@ Lifecycle of an issue:
  */
 object IssueRepository {
 
+  final val OpenedStatus = "OPENED"
+  final val ClosedStatus = "CLOSED"
+
   sealed trait IssueCommand
+  sealed trait Serializable extends JavaSerializable
 
   final case class CreateIssue(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
       extends IssueCommand
@@ -71,10 +76,13 @@ object IssueRepository {
 
   final case class IssueCreated(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
       extends IssueEvent
-  final case class IssueUpdated(id: UUID, summary: String, description: String, date: LocalDate) extends IssueEvent
-  final case class IssueUnprocessed(message: String)                                             extends IssueEvent
-  final case class IssueClosed(id: UUID, date: LocalDate)                                        extends IssueEvent
-  final case class IssueDeleted(id: UUID, date: LocalDate)                                       extends IssueEvent
+      with Serializable
+  final case class IssueUpdated(id: UUID, summary: String, description: String, date: LocalDate)
+      extends IssueEvent
+      with Serializable
+  final case class IssueClosed(id: UUID, date: LocalDate)  extends IssueEvent with Serializable
+  final case class IssueDeleted(id: UUID, date: LocalDate) extends IssueEvent with Serializable
+  final case class IssueUnprocessed(message: String)       extends IssueEvent
 
   sealed trait IssueState extends FSMState
 
@@ -94,10 +102,10 @@ object IssueRepository {
   sealed trait IssueStatus
 
   case object IssueOpenedStatus extends IssueStatus {
-    override def toString: String = "OPENED"
+    override def toString: String = OpenedStatus
   }
   case object IssueClosedStatus extends IssueStatus {
-    override def toString: String = "CLOSED"
+    override def toString: String = ClosedStatus
   }
 
   sealed trait IssueData
