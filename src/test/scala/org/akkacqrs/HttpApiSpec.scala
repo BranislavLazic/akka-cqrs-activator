@@ -70,7 +70,7 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       }
     }
 
-    "result in status code OK and message upon sending POST /issues" in {
+    "result in status code Created upon sending POST /issues" in {
       val issueRead              = TestProbe()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
@@ -90,12 +90,11 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
                timeout,
                eventBufferSize,
                heartbeatInterval) ~> check {
-        status shouldBe StatusCodes.OK
-        responseAs[String] shouldBe "Issue created."
+        status shouldBe StatusCodes.Created
       }
     }
 
-    s"result in status code OK and message upon sending PUT /issues/${ date.toString }/${ id.toString } when updating an issue" in {
+    s"result in status code OK upon sending PUT /issues/${ date.toString }/${ id.toString } when updating an issue" in {
       val issueRead              = TestProbe()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
@@ -116,7 +115,6 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
                eventBufferSize,
                heartbeatInterval) ~> check {
         status shouldBe StatusCodes.OK
-        responseAs[String] shouldBe "Issue updated."
       }
     }
 

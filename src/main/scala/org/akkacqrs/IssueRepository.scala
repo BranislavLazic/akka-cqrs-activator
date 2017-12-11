@@ -25,7 +25,10 @@ import akka.persistence.fsm.PersistentFSM.FSMState
 import org.akkacqrs.IssueRepository._
 import java.io.{ Serializable => JavaSerializable }
 
+import cats.data.Validated.{ Invalid, Valid }
+
 import scala.reflect._
+import cats.data._
 /*
 Lifecycle of an issue:
 
@@ -67,10 +70,9 @@ object IssueRepository {
 
   final case class CreateIssue(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
       extends IssueCommand
-  final case class UpdateIssue(id: UUID, summary: String, description: String, dateTime: LocalDate)
-      extends IssueCommand
-  final case class CloseIssue(id: UUID, date: LocalDate)  extends IssueCommand
-  final case class DeleteIssue(id: UUID, date: LocalDate) extends IssueCommand
+  final case class UpdateIssue(id: UUID, summary: String, description: String, date: LocalDate) extends IssueCommand
+  final case class CloseIssue(id: UUID, date: LocalDate)                                        extends IssueCommand
+  final case class DeleteIssue(id: UUID, date: LocalDate)                                       extends IssueCommand
 
   sealed trait IssueEvent
 
@@ -117,6 +119,7 @@ object IssueRepository {
 
 final class IssueRepository(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueEvent])
     extends PersistentFSM[IssueState, IssueData, IssueEvent] {
+  import CommandValidator._
 
   override def persistenceId: String = s"${ id.toString }-${ date.toString }"
 
@@ -129,18 +132,26 @@ final class IssueRepository(id: UUID, date: LocalDate)(implicit val domainEventC
   startWith(Idle, Empty)
 
   when(Idle) {
-    case Event(CreateIssue(`id`, summary, description, `date`, status), _) =>
-      val issueCreated = IssueCreated(id, summary, description, date, status)
-      goto(IssueCreatedState) applying issueCreated replying issueCreated
+    case Event(createIssue @ CreateIssue(`id`, summary, description, `date`, status), _) =>
+      validateCreateIssue(createIssue) match {
+        case Valid(_) =>
+          val issueCreated = IssueCreated(id, summary, description, date, status)
+          goto(IssueCreatedState) applying issueCreated replying issueCreated
+        case Invalid(errors) => stay replying errors
+      }
 
     case Event(_, _) =>
       stay replying IssueUnprocessed("Create an issue first.")
   }
 
   when(IssueCreatedState) {
-    case Event(UpdateIssue(`id`, summary, description, `date`), _) =>
-      val issueDescriptionUpdated = IssueUpdated(id, summary, description, date)
-      stay applying issueDescriptionUpdated replying issueDescriptionUpdated
+    case Event(updateIssue @ UpdateIssue(`id`, summary, description, `date`), _) =>
+      validateUpdateIssue(updateIssue) match {
+        case Valid(_) =>
+          val issueDescriptionUpdated = IssueUpdated(id, summary, description, date)
+          stay applying issueDescriptionUpdated replying issueDescriptionUpdated
+        case Invalid(errors) => stay replying errors
+      }
 
     case Event(CloseIssue(`id`, `date`), _) =>
       val issueClosed = IssueClosed(id, date)

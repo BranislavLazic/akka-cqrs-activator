@@ -30,8 +30,10 @@ import akka.http.scaladsl.server.Directives._
 import scala.concurrent.duration._
 import akka.pattern._
 import akka.stream.scaladsl.Source
+import cats.data.NonEmptyList
 import com.datastax.driver.core.utils.UUIDs
 import de.heikoseeberger.akkasse.ServerSentEvent
+import org.akkacqrs.CommandValidator.ValidationError
 import org.akkacqrs.IssueRepository._
 import org.akkacqrs.IssueView.{ GetIssueByDateAndId, GetIssuesByDate }
 
@@ -104,11 +106,6 @@ object HttpApi {
     def api: Route = pathPrefix("issues") {
       post {
         entity(as[CreateIssueRequest]) {
-          case CreateIssueRequest(_, summary, _) if summary.isEmpty =>
-            complete(StatusCodes.UnprocessableEntity, "Summary cannot be empty.")
-          case CreateIssueRequest(_, summary, _) if summary.length > 100 =>
-            complete(StatusCodes.UnprocessableEntity,
-                     "Name of the summary is too long. Maximum length is 100 characters.")
           case CreateIssueRequest(date: String, summary: String, description: String) =>
             onSuccess(
               issueRepositoryManager ? CreateIssue(UUIDs.timeBased(),
@@ -117,9 +114,11 @@ object HttpApi {
                                                    date.toLocalDate,
                                                    IssueOpenedStatus)
             ) {
-              case IssueCreated(_, _, _, _, _) => complete("Issue created.")
+              case IssueCreated(_, _, _, _, _) => complete(StatusCodes.Created)
+              case errors: NonEmptyList[ValidationError] @unchecked =>
+                complete(StatusCodes.UnprocessableEntity -> errors)
               case IssueUnprocessed(message) =>
-                complete(StatusCodes.UnprocessableEntity, message)
+                complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
             }
         }
       } ~
@@ -137,9 +136,11 @@ object HttpApi {
               entity(as[UpdateRequest]) {
                 case UpdateRequest(summary, description) =>
                   onSuccess(issueRepositoryManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
-                    case IssueUpdated(_, _, _, _) => complete("Issue updated.")
+                    case IssueUpdated(_, _, _, _) => complete(StatusCodes.OK)
+                    case errors: NonEmptyList[ValidationError] @unchecked =>
+                      complete(StatusCodes.UnprocessableEntity -> errors)
                     case IssueUnprocessed(message) =>
-                      complete(StatusCodes.UnprocessableEntity -> message)
+                      complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
                   }
               }
             } ~
@@ -147,7 +148,7 @@ object HttpApi {
                 onSuccess(issueRepositoryManager ? CloseIssue(id, date.toLocalDate)) {
                   case IssueClosed(_, _) => complete("Issue has been closed.")
                   case IssueUnprocessed(message) =>
-                    complete(StatusCodes.UnprocessableEntity -> message)
+                    complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
                 }
               } ~
               get {
@@ -161,7 +162,7 @@ object HttpApi {
                   case IssueDeleted(_, _) =>
                     complete("Issue has been deleted.")
                   case IssueUnprocessed(message) =>
-                    complete(StatusCodes.UnprocessableEntity -> message)
+                    complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
                 }
               }
           } ~
