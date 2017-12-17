@@ -29,9 +29,8 @@ class IssueTaggingEventAdapter extends WriteEventAdapter {
 
   def withTag(event: IssueEvent, tag: String) = Tagged(event, Set(tag))
 
-  override def toJournal(event: Any): Any = {
+  override def toJournal(event: Any): Any =
     event match {
       case evt: IssueEvent => withTag(evt, "issue-tag")
     }
-  }
 }

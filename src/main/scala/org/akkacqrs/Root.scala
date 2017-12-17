@@ -18,22 +18,20 @@ package org.akkacqrs
 
 import akka.actor.{ Actor, ActorContext, ActorLogging, ActorRef, Props, Terminated }
 import akka.cluster.pubsub.DistributedPubSub
-import akka.persistence.query.scaladsl.EventsByTagQuery2
+import akka.persistence.query.scaladsl.EventsByTagQuery
 
 import scala.concurrent.duration.FiniteDuration
 
 object Root {
   final val Name = "root"
 
-  private def createIssueRepositoryManager(context: ActorContext) = {
+  private def createIssueRepositoryManager(context: ActorContext) =
     context.actorOf(IssueRepositoryManager.props, IssueRepositoryManager.Name)
-  }
 
   private def createIssueView(context: ActorContext,
                               publishSubscribeMediator: ActorRef,
-                              readJournal: EventsByTagQuery2) = {
+                              readJournal: EventsByTagQuery) =
     context.actorOf(IssueView.props(publishSubscribeMediator, readJournal), IssueView.Name)
-  }
 
   private def createHttpApi(context: ActorContext,
                             host: String,
@@ -43,7 +41,7 @@ object Root {
                             heartbeatInterval: FiniteDuration,
                             issueRepositoryManager: ActorRef,
                             issueRead: ActorRef,
-                            publishSubscribeMediator: ActorRef) = {
+                            publishSubscribeMediator: ActorRef) =
     context.actorOf(HttpApi.props(host,
                                   port,
                                   requestTimeout,
@@ -53,12 +51,11 @@ object Root {
                                   issueRead,
                                   publishSubscribeMediator),
                     HttpApi.Name)
-  }
 
-  def props(readJournal: EventsByTagQuery2) = Props(new Root(readJournal))
+  def props(readJournal: EventsByTagQuery) = Props(new Root(readJournal))
 }
 
-final class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging {
+final class Root(readJournal: EventsByTagQuery) extends Actor with ActorLogging {
   import Root._
   import Settings.Http._
 
@@ -78,7 +75,7 @@ final class Root(readJournal: EventsByTagQuery2) extends Actor with ActorLogging
 
   override def receive: Receive = {
     case Terminated(actor) =>
-      log.info(s"Actor has been terminated: ${ actor.path }")
+      log.info(s"Actor has been terminated: ${actor.path}")
       context.system.terminate()
   }
 }

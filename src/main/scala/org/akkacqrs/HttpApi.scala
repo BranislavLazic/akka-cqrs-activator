@@ -33,7 +33,7 @@ import akka.pattern._
 import akka.stream.scaladsl.Source
 import cats.data.NonEmptyList
 import com.datastax.driver.core.utils.UUIDs
-import de.heikoseeberger.akkasse.ServerSentEvent
+import de.heikoseeberger.akkasse.scaladsl.model.ServerSentEvent
 import org.akkacqrs.CommandValidator.ValidationError
 import org.akkacqrs.IssueRepository._
 import org.akkacqrs.IssueView.{ GetIssueByDateAndId, GetIssuesByDate }
@@ -56,8 +56,8 @@ object HttpApi {
              eventBufferSize: Int,
              heartbeatInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Route = {
 
-    import de.heikoseeberger.akkahttpcirce.CirceSupport._
-    import de.heikoseeberger.akkasse.EventStreamMarshalling._
+    import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+    import de.heikoseeberger.akkasse.scaladsl.marshalling.EventStreamMarshalling._
     import io.circe.generic.auto._
     import io.circe.syntax._
     implicit val timeout = Timeout(requestTimeout)
@@ -69,13 +69,12 @@ object HttpApi {
       * @tparam A the issue  event type
       * @return the source of server sent events
       */
-    def fromEventStream[A: ClassTag](toServerSentEvent: A => ServerSentEvent) = {
+    def fromEventStream[A: ClassTag](toServerSentEvent: A => ServerSentEvent) =
       Source
         .actorRef[A](eventBufferSize, OverflowStrategy.dropHead)
         .map(toServerSentEvent)
         .mapMaterializedValue(publishSubscribeMediator ! Subscribe(className[A], _))
         .keepAlive(heartbeatInterval, () => ServerSentEvent.heartbeat)
-    }
 
     /**
       * Converts incoming event to the server sent event.
@@ -83,7 +82,7 @@ object HttpApi {
       * @param event the incoming issueEvent
       * @return server sent event instance
       */
-    def eventToServerSentEvent(event: IssueEvent): ServerSentEvent = {
+    def eventToServerSentEvent(event: IssueEvent): ServerSentEvent =
       event match {
         case issueCreated: IssueCreated =>
           ServerSentEvent(issueCreated.asJson.noSpaces, "issue-created")
@@ -96,7 +95,6 @@ object HttpApi {
         case unprocessedIssue: IssueUnprocessed =>
           ServerSentEvent(unprocessedIssue.message.asJson.noSpaces, "issue-unprocessed")
       }
-    }
 
     def assets: Route = getFromResourceDirectory("web") ~ pathSingleSlash {
       get {
@@ -128,57 +126,57 @@ object HttpApi {
             }
         }
       } ~
-        // Server sent events
-        path("event-stream") {
-          complete {
-            fromEventStream(eventToServerSentEvent)
+      // Server sent events
+      path("event-stream") {
+        complete {
+          fromEventStream(eventToServerSentEvent)
+        }
+      } ~
+      // Requests for issues by specific date
+      pathPrefix(Segment) { date =>
+        // Requests for an issue specified by its UUID
+        path(JavaUUID) { id =>
+          put {
+            entity(as[UpdateRequest]) {
+              case UpdateRequest(summary, description) =>
+                onSuccess(issueRepositoryManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
+                  case IssueUpdated(_, _, _, _) => complete(StatusCodes.OK)
+                  case errors: NonEmptyList[ValidationError] @unchecked =>
+                    complete(StatusCodes.UnprocessableEntity -> errors)
+                  case IssueUnprocessed(message) =>
+                    complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
+                }
+            }
+          } ~
+          put {
+            onSuccess(issueRepositoryManager ? CloseIssue(id, date.toLocalDate)) {
+              case IssueClosed(_, _) => complete("Issue has been closed.")
+              case IssueUnprocessed(message) =>
+                complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
+            }
+          } ~
+          get {
+            onSuccess(issueView ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
+              case issues: Vector[IssueView.IssueResponse] @unchecked =>
+                complete(issues.head)
+            }
+          } ~
+          delete {
+            onSuccess(issueRepositoryManager ? DeleteIssue(id, date.toLocalDate)) {
+              case IssueDeleted(_, _) =>
+                complete("Issue has been deleted.")
+              case IssueUnprocessed(message) =>
+                complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
+            }
           }
         } ~
-        // Requests for issues by specific date
-        pathPrefix(Segment) { date =>
-          // Requests for an issue specified by its UUID
-          path(JavaUUID) { id =>
-            put {
-              entity(as[UpdateRequest]) {
-                case UpdateRequest(summary, description) =>
-                  onSuccess(issueRepositoryManager ? UpdateIssue(id, summary, description, date.toLocalDate)) {
-                    case IssueUpdated(_, _, _, _) => complete(StatusCodes.OK)
-                    case errors: NonEmptyList[ValidationError] @unchecked =>
-                      complete(StatusCodes.UnprocessableEntity -> errors)
-                    case IssueUnprocessed(message) =>
-                      complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
-                  }
-              }
-            } ~
-              put {
-                onSuccess(issueRepositoryManager ? CloseIssue(id, date.toLocalDate)) {
-                  case IssueClosed(_, _) => complete("Issue has been closed.")
-                  case IssueUnprocessed(message) =>
-                    complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
-                }
-              } ~
-              get {
-                onSuccess(issueView ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
-                  case issues: Vector[IssueView.IssueResponse] @unchecked =>
-                    complete(issues.head)
-                }
-              } ~
-              delete {
-                onSuccess(issueRepositoryManager ? DeleteIssue(id, date.toLocalDate)) {
-                  case IssueDeleted(_, _) =>
-                    complete("Issue has been deleted.")
-                  case IssueUnprocessed(message) =>
-                    complete(StatusCodes.UnprocessableEntity -> Set(ValidationError("issue", message)))
-                }
-              }
-          } ~
-            get {
-              onSuccess(issueView ? GetIssuesByDate(date.toLocalDate)) {
-                case issues: Vector[IssueView.IssueResponse] @unchecked =>
-                  complete(issues)
-              }
-            }
+        get {
+          onSuccess(issueView ? GetIssuesByDate(date.toLocalDate)) {
+            case issues: Vector[IssueView.IssueResponse] @unchecked =>
+              complete(issues)
+          }
         }
+      }
     }
     api ~ assets
   }

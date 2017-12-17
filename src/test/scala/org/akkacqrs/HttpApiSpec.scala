@@ -34,8 +34,8 @@ import scala.concurrent.duration._
 
 class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
 
-  import de.heikoseeberger.akkasse.EventStreamMarshalling._
-  import de.heikoseeberger.akkahttpcirce.CirceSupport._
+  import de.heikoseeberger.akkasse.scaladsl.marshalling.EventStreamMarshalling._
+  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import org.akkacqrs.HttpApi._
   import org.akkacqrs.IssueRepository._
   import io.circe.generic.auto._
@@ -84,17 +84,12 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       })
 
       Post("/issues", CreateIssueRequest(date.toString, summary, description)) ~>
-        routes(issueRepositoryManager.ref,
-               issueRead.ref,
-               pubSubMediator.ref,
-               timeout,
-               eventBufferSize,
-               heartbeatInterval) ~> check {
+      routes(issueRepositoryManager.ref, issueRead.ref, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
         status shouldBe StatusCodes.Created
       }
     }
 
-    s"result in status code OK upon sending PUT /issues/${ date.toString }/${ id.toString } when updating an issue" in {
+    s"result in status code OK upon sending PUT /issues/${date.toString}/${id.toString} when updating an issue" in {
       val issueRead              = TestProbe()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
@@ -107,18 +102,13 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
         }
       })
 
-      Put(s"/issues/${ date.toString }/${ id.toString }", UpdateRequest(summary, description)) ~>
-        routes(issueRepositoryManager.ref,
-               issueRead.ref,
-               pubSubMediator.ref,
-               timeout,
-               eventBufferSize,
-               heartbeatInterval) ~> check {
+      Put(s"/issues/${date.toString}/${id.toString}", UpdateRequest(summary, description)) ~>
+      routes(issueRepositoryManager.ref, issueRead.ref, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
         status shouldBe StatusCodes.OK
       }
     }
 
-    s"result in status code OK and message upon sending PUT /issues/${ date.toString }/${ id.toString } when closing an issue" in {
+    s"result in status code OK and message upon sending PUT /issues/${date.toString}/${id.toString} when closing an issue" in {
       val issueRead              = TestProbe()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
@@ -131,19 +121,14 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
         }
       })
 
-      Put(s"/issues/${ date.toString }/${ id.toString }") ~>
-        routes(issueRepositoryManager.ref,
-               issueRead.ref,
-               pubSubMediator.ref,
-               timeout,
-               eventBufferSize,
-               heartbeatInterval) ~> check {
+      Put(s"/issues/${date.toString}/${id.toString}") ~>
+      routes(issueRepositoryManager.ref, issueRead.ref, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
         status shouldBe StatusCodes.OK
         responseAs[String] shouldBe "Issue has been closed."
       }
     }
 
-    s"result in status code OK and message upon sending DELETE /issues/${ date.toString }/${ id.toString }" in {
+    s"result in status code OK and message upon sending DELETE /issues/${date.toString}/${id.toString}" in {
       val issueRead              = TestProbe()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
@@ -156,13 +141,8 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
         }
       })
 
-      Delete(s"/issues/${ date.toString }/${ id.toString }") ~>
-        routes(issueRepositoryManager.ref,
-               issueRead.ref,
-               pubSubMediator.ref,
-               timeout,
-               eventBufferSize,
-               heartbeatInterval) ~> check {
+      Delete(s"/issues/${date.toString}/${id.toString}") ~>
+      routes(issueRepositoryManager.ref, issueRead.ref, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
         status shouldBe StatusCodes.OK
         responseAs[String] shouldBe "Issue has been deleted."
       }

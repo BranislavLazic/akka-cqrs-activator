@@ -121,13 +121,12 @@ final class IssueRepository(id: UUID, date: LocalDate)(implicit val domainEventC
     extends PersistentFSM[IssueState, IssueData, IssueEvent] {
   import CommandValidator._
 
-  override def persistenceId: String = s"${ id.toString }-${ date.toString }"
+  override def persistenceId: String = s"${id.toString}-${date.toString}"
 
-  override def applyEvent(domainEvent: IssueEvent, currentData: IssueData): IssueData = {
+  override def applyEvent(domainEvent: IssueEvent, currentData: IssueData): IssueData =
     domainEvent match {
       case _ => Empty
     }
-  }
 
   startWith(Idle, Empty)
 

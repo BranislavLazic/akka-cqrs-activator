@@ -51,7 +51,7 @@ class IssueRepositoryManager extends Actor {
   }
 
   private def forwardToIssueRepository(id: UUID, date: LocalDate, issueCommand: IssueCommand): Unit = {
-    val name = s"${ id.toString }-${ date.toString }"
+    val name = s"${id.toString}-${date.toString}"
     context.child(name).getOrElse(context.actorOf(IssueRepository.props(id, date), name)).forward(issueCommand)
   }
 }

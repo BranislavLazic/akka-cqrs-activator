@@ -24,7 +24,7 @@ import io.circe.Encoder
 import org.akkacqrs.IssueRepository.IssueStatus
 
 import scala.concurrent.{ Future, Promise }
-import scala.reflect.{ ClassTag, classTag }
+import scala.reflect.{ classTag, ClassTag }
 
 package object akkacqrs {
 

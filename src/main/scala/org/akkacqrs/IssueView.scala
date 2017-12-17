@@ -22,14 +22,15 @@ import java.util.UUID
 import akka.actor.{ ActorLogging, ActorRef, Props }
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.pattern._
-import akka.persistence.query.{ EventEnvelope2, TimeBasedUUID }
-import akka.persistence.query.scaladsl.EventsByTagQuery2
+import akka.persistence.query.{ EventEnvelope, TimeBasedUUID }
+import akka.persistence.query.scaladsl.EventsByTagQuery
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.utils.UUIDs
 import org.akkacqrs.IssueRepository._
-import collection.JavaConversions._
+
+import collection.JavaConverters._
 
 /**
   * Creates "read side" Cassandra keyspace and table.
@@ -70,11 +71,11 @@ object IssueView {
       s"DELETE FROM $keyspace.issues WHERE date_updated = ? and id = ?;"
   }
 
-  def props(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2) =
+  def props(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery) =
     Props(new IssueView(publishSubscribeMediator, readJournal))
 }
 
-final class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery2)
+final class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery)
     extends CassandraActor
     with ActorLogging {
 
@@ -87,7 +88,8 @@ final class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByT
   readJournal
     .eventsByTag("issue-tag", TimeBasedUUID(UUIDs.timeBased()))
     .map {
-      case EventEnvelope2(_, _, _, event: IssueEvent) => event
+      case EventEnvelope(_, _, _, event: IssueEvent) => event
+      case EventEnvelope(_, _, _, event)             => event
     }
     .runWith(Sink.actorRef(self, "completed"))
 
@@ -126,9 +128,12 @@ final class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByT
         .toFuture
         .map(resultSetToIssueResponse)
         .pipeTo(sender())
+
+    case _ => log.warning(s"Unknown event received")
   }
-  private def resultSetToIssueResponse(rs: ResultSet) = {
+  private def resultSetToIssueResponse(rs: ResultSet) =
     rs.all()
+      .asScala
       .map(row => {
         val id          = row.getUUID("id")
         val summary     = row.getString("summary")
@@ -138,5 +143,4 @@ final class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByT
         IssueResponse(id, dateUpdated, summary, description, status)
       })
       .toVector
-  }
 }

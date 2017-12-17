@@ -25,7 +25,6 @@ import com.datastax.driver.core.Session
 trait CassandraActor extends Actor {
 
   val session: Session = CassandraConnector.openConnection()
-  override def postStop(): Unit = {
+  override def postStop(): Unit =
     CassandraConnector.closeConnection(session)
-  }
 }

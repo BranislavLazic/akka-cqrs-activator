@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package org.akkacqrs.proto
+package org.akkacqrs.protobuf
 
 import java.io.NotSerializableException
 import java.time.{ Instant, LocalDate, LocalDateTime }
 import java.util.UUID
 
 import akka.serialization.SerializerWithStringManifest
-import org.akkacqrs.IssueRepository
-import org.akkacqrs.IssueRepository._
-import org.akkacqrs.proto.issue.{
+import org.akkacqrs.proto.{
   Timestamp,
   IssueClosed => IssueClosedPb,
   IssueCreated => IssueCreatedPb,
@@ -32,7 +30,7 @@ import org.akkacqrs.proto.issue.{
 }
 
 final class IssueSerializer extends SerializerWithStringManifest {
-
+  import org.akkacqrs.IssueRepository._
   override def identifier: Int = getClass.getName.hashCode
 
   private final val IssueCreatedManifest = "IssueCreated"
@@ -52,8 +50,8 @@ final class IssueSerializer extends SerializerWithStringManifest {
 
   override def toBinary(o: AnyRef): Array[Byte] = {
 
-    def getUUIDPb(uuid: UUID): Option[org.akkacqrs.proto.issue.UUID] =
-      Some(org.akkacqrs.proto.issue.UUID(uuid.toString))
+    def getUUIDPb(uuid: UUID): Option[org.akkacqrs.proto.UUID] =
+      Some(org.akkacqrs.proto.UUID(uuid.toString))
 
     def getTimestampPb(date: LocalDate): Option[Timestamp] = {
       import java.time.ZoneOffset
@@ -74,7 +72,7 @@ final class IssueSerializer extends SerializerWithStringManifest {
 
           case IssueDeleted(id, date) => IssueDeletedPb(getUUIDPb(id), getTimestampPb(date))
         }
-      case _ => throw new IllegalArgumentException(s"Unknown class: ${ o.getClass }!")
+      case _ => throw new IllegalArgumentException(s"Unknown class: ${o.getClass}!")
     }
     protobuf.toByteArray
   }
@@ -82,8 +80,8 @@ final class IssueSerializer extends SerializerWithStringManifest {
   override def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = {
 
     def getIssueStatus(status: String) = status match {
-      case IssueRepository.ClosedStatus => IssueClosedStatus
-      case IssueRepository.OpenedStatus => IssueOpenedStatus
+      case ClosedStatus => IssueClosedStatus
+      case OpenedStatus => IssueOpenedStatus
     }
 
     def timestampToLocalDate(timestamp: Timestamp): LocalDate = {
@@ -93,13 +91,14 @@ final class IssueSerializer extends SerializerWithStringManifest {
         .toLocalDate
     }
 
-    def getIssueCreated(issueCreatedPb: IssueCreatedPb) = {
-      IssueCreated(UUID.fromString(issueCreatedPb.id.get.value),
-                   issueCreatedPb.summary,
-                   issueCreatedPb.description,
-                   timestampToLocalDate(issueCreatedPb.date.get),
-                   getIssueStatus(issueCreatedPb.issueStatus))
-    }
+    def getIssueCreated(issueCreatedPb: IssueCreatedPb) =
+      IssueCreated(
+        UUID.fromString(issueCreatedPb.id.get.value),
+        issueCreatedPb.summary,
+        issueCreatedPb.description,
+        timestampToLocalDate(issueCreatedPb.date.get),
+        getIssueStatus(issueCreatedPb.issueStatus)
+      )
 
     def getIssueUpdated(issueUpdatedPb: IssueUpdatedPb) =
       IssueUpdated(UUID.fromString(issueUpdatedPb.id.get.value),
