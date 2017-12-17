@@ -22,6 +22,7 @@ import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.Route
 import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.util.Timeout
@@ -114,7 +115,12 @@ object HttpApi {
                                                    date.toLocalDate,
                                                    IssueOpenedStatus)
             ) {
-              case IssueCreated(_, _, _, _, _) => complete(StatusCodes.Created)
+              case IssueCreated(id, _, _, date, _) =>
+                extractRequestContext { context =>
+                  respondWithHeader(Location(context.request.uri + "/" + date.toString + "/" + id.toString)) {
+                    complete(StatusCodes.Created)
+                  }
+                }
               case errors: NonEmptyList[ValidationError] @unchecked =>
                 complete(StatusCodes.UnprocessableEntity -> errors)
               case IssueUnprocessed(message) =>
