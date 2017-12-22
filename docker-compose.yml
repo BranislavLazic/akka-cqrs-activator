@@ -2,7 +2,7 @@ version: '2'
 
 services:
   cassandra_event_store:
-    image: cassandra:3.9
+    image: cassandra:3.11.1
     ports:
       - "9042:9042"
 
