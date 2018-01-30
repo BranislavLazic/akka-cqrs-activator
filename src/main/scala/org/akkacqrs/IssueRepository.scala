@@ -18,17 +18,12 @@ package org.akkacqrs
 
 import java.time.LocalDate
 import java.util.UUID
-
-import akka.actor.Props
-import akka.persistence.fsm.PersistentFSM
-import akka.persistence.fsm.PersistentFSM.FSMState
+import akka.actor.{ ActorLogging, Props }
 import org.akkacqrs.IssueRepository._
 import java.io.{ Serializable => JavaSerializable }
-
+import akka.persistence.{ PersistentActor, RecoveryCompleted, SnapshotOffer }
 import cats.data.Validated.{ Invalid, Valid }
-
 import scala.reflect._
-import cats.data._
 /*
 Lifecycle of an issue:
 
@@ -86,21 +81,6 @@ object IssueRepository {
   final case class IssueDeleted(id: UUID, date: LocalDate) extends IssueEvent with Serializable
   final case class IssueUnprocessed(message: String)       extends IssueEvent
 
-  sealed trait IssueState extends FSMState
-
-  case object Idle extends IssueState {
-    override def identifier = "idle"
-  }
-  case object IssueCreatedState extends IssueState {
-    override def identifier = "issueCreated"
-  }
-  case object IssueClosedState extends IssueState {
-    override def identifier = "issueClosed"
-  }
-  case object IssueDeletedState extends IssueState {
-    override def identifier = "issueDeleted"
-  }
-
   sealed trait IssueStatus
 
   case object IssueOpenedStatus extends IssueStatus {
@@ -110,73 +90,90 @@ object IssueRepository {
     override def toString: String = ClosedStatus
   }
 
-  sealed trait IssueData
-
-  case object Empty extends IssueData
-
   def props(id: UUID, date: LocalDate) = Props(new IssueRepository(id, date))
 }
 
 final class IssueRepository(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueEvent])
-    extends PersistentFSM[IssueState, IssueData, IssueEvent] {
+    extends PersistentActor
+    with ActorLogging {
   import CommandValidator._
+
+  // Take snapshot after 5 persisted events
+  private val snapshotInterval = 5
 
   override def persistenceId: String = s"${id.toString}-${date.toString}"
 
-  override def applyEvent(domainEvent: IssueEvent, currentData: IssueData): IssueData =
-    domainEvent match {
-      case _ => Empty
-    }
+  override def receiveRecover: Receive = {
+    case SnapshotOffer(_, event: IssueEvent) => handleRecovery(event)
+    case event: IssueEvent                   => handleRecovery(event)
+    case RecoveryCompleted                   => log.info(s"Recovery completed for issue with id ${self.path.name}")
+  }
 
-  startWith(Idle, Empty)
+  override def receiveCommand: Receive = idle
 
-  when(Idle) {
-    case Event(createIssue @ CreateIssue(`id`, summary, description, `date`, status), _) =>
+  private def handleRecovery(event: IssueEvent): Unit = event match {
+    case IssueCreated(_, _, _, _, _) => context.become(created)
+    case IssueClosed(_, _)           => context.become(closed)
+    case IssueDeleted(_, _)          => context.become(deleted)
+    case _: IssueEvent               =>
+  }
+
+  private def idle: Receive = {
+    case createIssue @ CreateIssue(`id`, summary, description, `date`, status) =>
       validateCreateIssue(createIssue) match {
         case Valid(_) =>
-          val issueCreated = IssueCreated(id, summary, description, date, status)
-          goto(IssueCreatedState) applying issueCreated replying issueCreated
-        case Invalid(errors) => stay replying errors
+          persist(IssueCreated(id, summary, description, date, status)) { issueCreatedEvt =>
+            receiveRecover(issueCreatedEvt)
+            checkForSnapshot(issueCreatedEvt)
+            sender() ! issueCreatedEvt
+          }
+        case Invalid(errors) => sender() ! errors
       }
-
-    case Event(_, _) =>
-      stay replying IssueUnprocessed("Create an issue first.")
+    case _: IssueCommand => sender() ! IssueUnprocessed("Create an issue first.")
   }
 
-  when(IssueCreatedState) {
-    case Event(updateIssue @ UpdateIssue(`id`, summary, description, `date`), _) =>
+  private def created: Receive = {
+    case updateIssue @ UpdateIssue(`id`, summary, description, `date`) =>
       validateUpdateIssue(updateIssue) match {
         case Valid(_) =>
-          val issueDescriptionUpdated = IssueUpdated(id, summary, description, date)
-          stay applying issueDescriptionUpdated replying issueDescriptionUpdated
-        case Invalid(errors) => stay replying errors
+          persist(IssueUpdated(id, summary, description, date)) { issueUpdatedEvt =>
+            receiveRecover(issueUpdatedEvt)
+            checkForSnapshot(issueUpdatedEvt)
+            sender() ! issueUpdatedEvt
+          }
+        case Invalid(errors) => sender() ! errors
       }
-
-    case Event(CloseIssue(`id`, `date`), _) =>
-      val issueClosed = IssueClosed(id, date)
-      goto(IssueClosedState) applying issueClosed replying issueClosed
-
-    case Event(DeleteIssue(`id`, `date`), _) =>
-      val issueDeleted = IssueDeleted(id, date)
-      goto(IssueDeletedState) applying issueDeleted replying issueDeleted
+    case CloseIssue(`id`, `date`) =>
+      persist(IssueClosed(id, date)) { issueClosedEvt =>
+        receiveRecover(issueClosedEvt)
+        checkForSnapshot(issueClosedEvt)
+        sender() ! issueClosedEvt
+      }
+    case DeleteIssue(`id`, `date`) =>
+      persist(IssueDeleted(id, date)) { issueDeletedEvt =>
+        receiveRecover(issueDeletedEvt)
+        checkForSnapshot(issueDeletedEvt)
+        sender() ! issueDeletedEvt
+      }
+    case CreateIssue(`id`, _, _, _, _) => sender() ! IssueUnprocessed("Issue has been already created.")
   }
 
-  when(IssueClosedState) {
-    case Event(DeleteIssue(`id`, `date`), _) =>
-      val issueDeleted = IssueDeleted(id, date)
-      goto(IssueDeletedState) applying issueDeleted replying issueDeleted
-
-    case Event(_, _) =>
-      stay replying IssueUnprocessed("Issue has been closed. Cannot update or close again.")
+  private def closed: Receive = {
+    case DeleteIssue(`id`, `date`) =>
+      persist(IssueDeleted(id, date)) { issueDeletedEvt =>
+        receiveRecover(issueDeletedEvt)
+        checkForSnapshot(issueDeletedEvt)
+        sender() ! issueDeletedEvt
+      }
+    case _: IssueCommand => sender() ! IssueUnprocessed("Issue has been closed. Cannot update or close again.")
   }
 
-  when(IssueDeletedState) {
-    case Event(_, _) =>
-      stay replying IssueUnprocessed("Issue has been deleted. Cannot update, close or delete again.")
+  private def deleted: Receive = {
+    case _: IssueCommand =>
+      sender() ! IssueUnprocessed("Issue has been deleted. Cannot update, close or delete again.")
   }
 
-  whenUnhandled {
-    case Event(CreateIssue(`id`, _, _, _, _), _) =>
-      stay replying IssueUnprocessed("Issue has been already created.")
-  }
+  private def checkForSnapshot(event: IssueEvent): Unit =
+    if (lastSequenceNr % snapshotInterval == 0 && lastSequenceNr != 0) saveSnapshot(event)
+
 }
