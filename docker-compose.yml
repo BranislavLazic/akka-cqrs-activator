@@ -5,4 +5,5 @@ services:
     image: cassandra:3.11.1
     ports:
       - "9042:9042"
-
+    environment:
+      JVM_OPTS: "-Xms1G -Xmx3G"
