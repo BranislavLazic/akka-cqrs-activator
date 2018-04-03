@@ -46,7 +46,7 @@ object CommandValidator {
     val validDate                                    = Validated.valid(createIssue.date)
     val validStatus                                  = Validated.valid(createIssue.status)
 
-    validId |@| validSummary |@| validDescription |@| validDate |@| validStatus map CreateIssue
+    (validId, validSummary, validDescription, validDate, validStatus) mapN CreateIssue
   }
 
   def validateUpdateIssue(updateIssue: UpdateIssue): ValidatedNel[ValidationError, UpdateIssue] = {
@@ -55,6 +55,6 @@ object CommandValidator {
     val validDescription                             = validateDescription(updateIssue.description)
     val validDate                                    = Validated.valid(updateIssue.date)
 
-    validId |@| validSummary |@| validDescription |@| validDate map UpdateIssue
+    (validId, validSummary, validDescription, validDate) mapN UpdateIssue
   }
 }

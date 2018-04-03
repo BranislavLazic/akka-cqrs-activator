@@ -29,12 +29,12 @@ lazy val `akka-cqrs-activator` =
 lazy val library =
   new {
     object Version {
-      val akka                     = "2.5.9"
-      val akkaHttp                 = "10.0.11"
-      val akkaPersistenceCassandra = "0.59"
+      val akka                     = "2.5.11"
+      val akkaHttp                 = "10.1.0"
+      val akkaPersistenceCassandra = "0.83"
       val akkaPersistenceInMemory  = "2.5.1.1"
-      val akkaHttpCirce            = "1.17.0"
-      val circeGeneric             = "0.8.0"
+      val akkaHttpCirce            = "1.20.0"
+      val circeGeneric             = "0.9.1"
       val scalaCheck               = "1.13.5"
       val scalaTest                = "3.0.4"
       val scalaProtobuf            = com.trueaccord.scalapb.compiler.Version.scalapbVersion
@@ -77,7 +77,8 @@ lazy val commonSettings =
       "-language:_",
       "-target:jvm-1.8",
       "-encoding",
-      "UTF-8"
+      "UTF-8",
+      "-Ypartial-unification"
     ),
     unmanagedSourceDirectories.in(Compile) := Seq(scalaSource.in(Compile).value),
     unmanagedSourceDirectories.in(Test) := Seq(scalaSource.in(Test).value)
