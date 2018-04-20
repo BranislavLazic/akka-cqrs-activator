@@ -4,7 +4,7 @@
 
 #### Technical requirements:
 
-- Scala 2.11
+- Scala 2.12
 - docker-compose version 1.8
 - SBT
 

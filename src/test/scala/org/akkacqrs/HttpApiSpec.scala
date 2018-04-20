@@ -24,7 +24,6 @@ import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.model.{ StatusCodes, Uri }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
-import akka.testkit.TestActor.AutoPilot
 import akka.testkit.{ TestActor, TestProbe }
 import com.datastax.driver.core.utils.UUIDs
 import org.scalatest.{ Matchers, WordSpec }
@@ -34,7 +33,7 @@ import scala.concurrent.duration._
 
 class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
 
-  import de.heikoseeberger.akkasse.scaladsl.marshalling.EventStreamMarshalling._
+  import akka.http.scaladsl.unmarshalling.sse.EventStreamUnmarshalling._
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import org.akkacqrs.HttpApi._
   import org.akkacqrs.IssueRepository._
@@ -75,13 +74,14 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
-      issueRepositoryManager.setAutoPilot(new AutoPilot {
-        override def run(sender: ActorRef, msg: Any) = msg match {
-          case CreateIssue(_, `summary`, `description`, `date`, IssueOpenedStatus) =>
-            sender ! IssueCreated(id, summary, description, date, IssueOpenedStatus)
-            TestActor.NoAutoPilot
+      issueRepositoryManager.setAutoPilot(
+        (sender: ActorRef, msg: Any) =>
+          msg match {
+            case CreateIssue(_, `summary`, `description`, `date`, IssueOpenedStatus) =>
+              sender ! IssueCreated(id, summary, description, date, IssueOpenedStatus)
+              TestActor.NoAutoPilot
         }
-      })
+      )
 
       Post("/issues", CreateIssueRequest(date.toString, summary, description)) ~>
       routes(issueRepositoryManager.ref, issueRead.ref, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
@@ -94,13 +94,14 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
-      issueRepositoryManager.setAutoPilot(new AutoPilot {
-        override def run(sender: ActorRef, msg: Any) = msg match {
-          case UpdateIssue(`id`, `summary`, `description`, `date`) =>
-            sender ! IssueUpdated(id, summary, description, date)
-            TestActor.NoAutoPilot
+      issueRepositoryManager.setAutoPilot(
+        (sender: ActorRef, msg: Any) =>
+          msg match {
+            case UpdateIssue(`id`, `summary`, `description`, `date`) =>
+              sender ! IssueUpdated(id, summary, description, date)
+              TestActor.NoAutoPilot
         }
-      })
+      )
 
       Put(s"/issues/${date.toString}/${id.toString}", UpdateRequest(summary, description)) ~>
       routes(issueRepositoryManager.ref, issueRead.ref, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
@@ -113,13 +114,14 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
-      issueRepositoryManager.setAutoPilot(new AutoPilot {
-        override def run(sender: ActorRef, msg: Any) = msg match {
-          case CloseIssue(`id`, `date`) =>
-            sender ! IssueClosed(id, date)
-            TestActor.NoAutoPilot
+      issueRepositoryManager.setAutoPilot(
+        (sender: ActorRef, msg: Any) =>
+          msg match {
+            case CloseIssue(`id`, `date`) =>
+              sender ! IssueClosed(id, date)
+              TestActor.NoAutoPilot
         }
-      })
+      )
 
       Put(s"/issues/${date.toString}/${id.toString}") ~>
       routes(issueRepositoryManager.ref, issueRead.ref, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
@@ -133,13 +135,14 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
-      issueRepositoryManager.setAutoPilot(new AutoPilot {
-        override def run(sender: ActorRef, msg: Any) = msg match {
-          case DeleteIssue(`id`, `date`) =>
-            sender ! IssueDeleted(id, date)
-            TestActor.NoAutoPilot
+      issueRepositoryManager.setAutoPilot(
+        (sender: ActorRef, msg: Any) =>
+          msg match {
+            case DeleteIssue(`id`, `date`) =>
+              sender ! IssueDeleted(id, date)
+              TestActor.NoAutoPilot
         }
-      })
+      )
 
       Delete(s"/issues/${date.toString}/${id.toString}") ~>
       routes(issueRepositoryManager.ref, issueRead.ref, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {

@@ -14,7 +14,6 @@ lazy val `akka-cqrs-activator` =
         library.akkaPersistence,
         library.akkaPersistenceCassandra,
         library.circeGeneric,
-        library.serverSentEvents,
         library.akkaHttpTestkit         % Test,
         library.akkaPersistenceInMemory % Test,
         library.scalaCheck              % Test,
@@ -29,16 +28,15 @@ lazy val `akka-cqrs-activator` =
 lazy val library =
   new {
     object Version {
-      val akka                     = "2.5.11"
-      val akkaHttp                 = "10.1.0"
+      val akka                     = "2.5.12"
+      val akkaHttp                 = "10.1.1"
       val akkaPersistenceCassandra = "0.83"
       val akkaPersistenceInMemory  = "2.5.1.1"
       val akkaHttpCirce            = "1.20.0"
-      val circeGeneric             = "0.9.1"
+      val circeGeneric             = "0.9.3"
       val scalaCheck               = "1.13.5"
       val scalaTest                = "3.0.4"
       val scalaProtobuf            = com.trueaccord.scalapb.compiler.Version.scalapbVersion
-      val sse                      = "3.0.0"
     }
     val akkaHttp                 = "com.typesafe.akka"      %% "akka-http"                  % Version.akkaHttp
     val akkaHttpTestkit          = "com.typesafe.akka"      %% "akka-http-testkit"          % Version.akkaHttp
@@ -46,7 +44,6 @@ lazy val library =
     val akkaPersistenceCassandra = "com.typesafe.akka"      %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
     val akkaPersistenceInMemory  = "com.github.dnvriend"    %% "akka-persistence-inmemory"  % Version.akkaPersistenceInMemory
     val akkaHttpCirce            = "de.heikoseeberger"      %% "akka-http-circe"            % Version.akkaHttpCirce
-    val serverSentEvents         = "de.heikoseeberger"      %% "akka-sse"                   % Version.sse
     val circeGeneric             = "io.circe"               %% "circe-generic"              % Version.circeGeneric
     val scalaCheck               = "org.scalacheck"         %% "scalacheck"                 % Version.scalaCheck
     val scalaTest                = "org.scalatest"          %% "scalatest"                  % Version.scalaTest

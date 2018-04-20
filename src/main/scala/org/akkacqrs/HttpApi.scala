@@ -23,6 +23,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
+import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.util.Timeout
@@ -33,7 +34,6 @@ import akka.pattern._
 import akka.stream.scaladsl.Source
 import cats.data.NonEmptyList
 import com.datastax.driver.core.utils.UUIDs
-import de.heikoseeberger.akkasse.scaladsl.model.ServerSentEvent
 import org.akkacqrs.CommandValidator.ValidationError
 import org.akkacqrs.IssueRepository._
 import org.akkacqrs.IssueView.{ GetIssueByDateAndId, GetIssuesByDate }
@@ -57,7 +57,7 @@ object HttpApi {
              heartbeatInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Route = {
 
     import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-    import de.heikoseeberger.akkasse.scaladsl.marshalling.EventStreamMarshalling._
+    import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
     import io.circe.generic.auto._
     import io.circe.syntax._
     implicit val timeout = Timeout(requestTimeout)
