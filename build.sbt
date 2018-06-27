@@ -63,7 +63,7 @@ protobufSettings
 lazy val commonSettings =
   Seq(
     // scalaVersion from .travis.yml via sbt-travisci
-    scalaVersion := "2.12.4",
+    // scalaVersion := "2.12.4",
     organization := "org.akkacqrs",
     organizationName := "Branislav Lazic",
     startYear := Some(2017),
