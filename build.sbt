@@ -28,9 +28,9 @@ lazy val `akka-cqrs-activator` =
 lazy val library =
   new {
     object Version {
-      val akka                     = "2.5.12"
-      val akkaHttp                 = "10.1.1"
-      val akkaPersistenceCassandra = "0.83"
+      val akka                     = "2.5.13"
+      val akkaHttp                 = "10.1.2"
+      val akkaPersistenceCassandra = "0.85"
       val akkaPersistenceInMemory  = "2.5.1.1"
       val akkaHttpCirce            = "1.20.0"
       val circeGeneric             = "0.9.3"
@@ -63,7 +63,7 @@ protobufSettings
 lazy val commonSettings =
   Seq(
     // scalaVersion from .travis.yml via sbt-travisci
-    // scalaVersion := "2.12.4",
+    scalaVersion := "2.12.4",
     organization := "org.akkacqrs",
     organizationName := "Branislav Lazic",
     startYear := Some(2017),
