@@ -26,7 +26,7 @@ object Settings {
 
   object CassandraDb {
     val contactPoints: Array[String] =
-      config.getStringList("cassandra.read.contact-points").toArray.map(i => i.toString)
+      config.getStringList("cassandra.read.contact-points").toArray.map(_.toString)
     val port: Int        = config.getInt("cassandra.read.port")
     val keyspace: String = config.getString("cassandra.read.keyspace")
   }

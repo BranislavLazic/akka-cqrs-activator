@@ -23,7 +23,7 @@ import scala.concurrent.Await
 
 trait BaseSpec extends BeforeAndAfterAll { this: Suite =>
 
-  protected implicit final val system = ActorSystem()
+  protected implicit final val system: ActorSystem = ActorSystem()
 
   override protected def afterAll(): Unit = {
     Await.ready(system.terminate(), 5.seconds)

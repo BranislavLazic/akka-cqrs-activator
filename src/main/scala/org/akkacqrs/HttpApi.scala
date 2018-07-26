@@ -60,7 +60,7 @@ object HttpApi {
     import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
     import io.circe.generic.auto._
     import io.circe.syntax._
-    implicit val timeout = Timeout(requestTimeout)
+    implicit val timeout: Timeout = Timeout(requestTimeout)
 
     /**
       * Subscribes to the stream of incoming events from IssueVew.
@@ -113,9 +113,9 @@ object HttpApi {
                                                    date.toLocalDate,
                                                    IssueOpenedStatus)
             ) {
-              case IssueCreated(id, _, _, date, _) =>
+              case IssueCreated(id, _, _, dateCreated, _) =>
                 extractRequestContext { context =>
-                  respondWithHeader(Location(context.request.uri + "/" + date.toString + "/" + id.toString)) {
+                  respondWithHeader(Location(context.request.uri + "/" + dateCreated.toString + "/" + id.toString)) {
                     complete(StatusCodes.Created)
                   }
                 }
@@ -213,7 +213,7 @@ final class HttpApi(host: String,
     with ActorLogging {
   import context.dispatcher
   import HttpApi._
-  implicit val materializer = ActorMaterializer()
+  private implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   Http(context.system)
     .bindAndHandle(routes(issueRepositoryManager,

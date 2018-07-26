@@ -18,22 +18,23 @@ package org.akkacqrs
 
 import java.time.LocalDate
 import java.util.UUID
-import akka.actor.ActorSystem
+
+import akka.actor.ActorRef
 import akka.testkit.TestProbe
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
+import org.scalatest.{ Matchers, WordSpec }
 
 class IssueRepositorySpec extends WordSpec with Matchers with BaseSpec {
 
   import org.akkacqrs.IssueRepository._
 
   "When issue is not created then IssueRepository actor" should {
-    val sender             = TestProbe()
-    implicit val senderRef = sender.ref
-    val uuid               = UUID.randomUUID()
-    val summary            = "Test summary"
-    val description        = "Test description"
-    val date               = LocalDate.now()
-    val status             = IssueOpenedStatus
+    val sender                       = TestProbe()
+    implicit val senderRef: ActorRef = sender.ref
+    val uuid                         = UUID.randomUUID()
+    val summary                      = "Test summary"
+    val description                  = "Test description"
+    val date                         = LocalDate.now()
+    val status                       = IssueOpenedStatus
 
     val issueRepository = system.actorOf(IssueRepository.props(uuid, date))
 
@@ -85,10 +86,10 @@ class IssueRepositorySpec extends WordSpec with Matchers with BaseSpec {
   }
 
   "When issue is not being created then IssueRepository actor" should {
-    val sender             = TestProbe()
-    implicit val senderRef = sender.ref
-    val uuid               = UUID.randomUUID()
-    val date               = LocalDate.now()
+    val sender                       = TestProbe()
+    implicit val senderRef: ActorRef = sender.ref
+    val uuid                         = UUID.randomUUID()
+    val date                         = LocalDate.now()
 
     val issueRepository = system.actorOf(IssueRepository.props(uuid, date))
 

@@ -56,7 +56,7 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
       val issueRead              = TestProbe()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
-      implicit val materializer  = ActorMaterializer()
+      implicit val materializer: ActorMaterializer = ActorMaterializer()
 
       Get("/") ~> routes(issueRepositoryManager.ref,
                          issueRead.ref,

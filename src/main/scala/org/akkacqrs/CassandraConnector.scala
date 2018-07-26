@@ -26,7 +26,7 @@ object CassandraConnector {
     cassandraCluster.newSession()
   }
 
-  def closeConnection(session: Session) {
+  def closeConnection(session: Session): Unit = {
     val cluster = session.getCluster
     session.close()
     cluster.close()

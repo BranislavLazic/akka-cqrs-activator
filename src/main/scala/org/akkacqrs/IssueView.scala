@@ -83,7 +83,7 @@ final class IssueView(publishSubscribeMediator: ActorRef, readJournal: EventsByT
   import IssueView.CQLStatements._
   import context.dispatcher
 
-  private implicit val materializer = ActorMaterializer()
+  private implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   readJournal
     .eventsByTag("issue-tag", TimeBasedUUID(UUIDs.timeBased()))
