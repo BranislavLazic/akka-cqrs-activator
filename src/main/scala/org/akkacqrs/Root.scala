@@ -19,6 +19,8 @@ package org.akkacqrs
 import akka.actor.{ Actor, ActorContext, ActorLogging, ActorRef, Props, Terminated }
 import akka.cluster.pubsub.DistributedPubSub
 import akka.persistence.query.scaladsl.EventsByTagQuery
+import akka.stream.ActorMaterializer
+import org.akkacqrs.service.{ IssueService, IssueServiceCassandra }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -28,11 +30,6 @@ object Root {
   private def createIssueRepositoryManager(context: ActorContext) =
     context.actorOf(IssueRepositoryManager.props, IssueRepositoryManager.Name)
 
-  private def createIssueView(context: ActorContext,
-                              publishSubscribeMediator: ActorRef,
-                              readJournal: EventsByTagQuery) =
-    context.actorOf(IssueView.props(publishSubscribeMediator, readJournal), IssueView.Name)
-
   private def createHttpApi(context: ActorContext,
                             host: String,
                             port: Int,
@@ -40,7 +37,7 @@ object Root {
                             eventBufferSize: Int,
                             heartbeatInterval: FiniteDuration,
                             issueRepositoryManager: ActorRef,
-                            issueRead: ActorRef,
+                            issueService: IssueService,
                             publishSubscribeMediator: ActorRef) =
     context.actorOf(HttpApi.props(host,
                                   port,
@@ -48,7 +45,7 @@ object Root {
                                   eventBufferSize,
                                   heartbeatInterval,
                                   issueRepositoryManager,
-                                  issueRead,
+                                  issueService,
                                   publishSubscribeMediator),
                     HttpApi.Name)
 
@@ -58,11 +55,14 @@ object Root {
 final class Root(readJournal: EventsByTagQuery) extends Actor with ActorLogging {
   import Root._
   import Settings.Http._
+  import context.dispatcher
+  private implicit val materializer: ActorMaterializer = ActorMaterializer()
+  private val session                                  = CassandraConnector.openConnection()
 
   private val publishSubscribeMediator: ActorRef = context.watch(DistributedPubSub(context.system).mediator)
   private val issueRepositoryManager: ActorRef   = context.watch(createIssueRepositoryManager(context))
-  private val issueView: ActorRef =
-    context.watch(createIssueView(context, publishSubscribeMediator, readJournal))
+  private val issueService                       = IssueServiceCassandra(session, publishSubscribeMediator, readJournal)
+
   createHttpApi(context,
                 host,
                 port,
@@ -70,12 +70,13 @@ final class Root(readJournal: EventsByTagQuery) extends Actor with ActorLogging 
                 eventBufferSize,
                 heartbeatInterval,
                 issueRepositoryManager,
-                issueView,
+                issueService,
                 publishSubscribeMediator)
 
   override def receive: Receive = {
     case Terminated(actor) =>
       log.info(s"Actor has been terminated: ${actor.path}")
+      CassandraConnector.closeConnection(session)
       context.system.terminate()
   }
 }

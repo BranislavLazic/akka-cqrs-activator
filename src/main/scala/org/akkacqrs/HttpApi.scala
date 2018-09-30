@@ -36,7 +36,7 @@ import cats.data.NonEmptyList
 import com.datastax.driver.core.utils.UUIDs
 import org.akkacqrs.CommandValidator.ValidationError
 import org.akkacqrs.IssueRepository._
-import org.akkacqrs.IssueView.{ GetIssueByDateAndId, GetIssuesByDate }
+import org.akkacqrs.service.{ IssueResponse, IssueService }
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
@@ -50,7 +50,7 @@ object HttpApi {
   final val Name = "http-server"
 
   def routes(issueRepositoryManager: ActorRef,
-             issueView: ActorRef,
+             issueService: IssueService,
              publishSubscribeMediator: ActorRef,
              requestTimeout: FiniteDuration,
              eventBufferSize: Int,
@@ -156,8 +156,8 @@ object HttpApi {
             }
           } ~
           get {
-            onSuccess(issueView ? GetIssueByDateAndId(date.toLocalDate, `id`)) {
-              case issues: Vector[IssueView.IssueResponse] @unchecked =>
+            onSuccess(issueService.getIssueByDateAndId(date.toLocalDate, `id`)) {
+              issues: Vector[IssueResponse] @unchecked =>
                 complete(issues.head)
             }
           } ~
@@ -171,9 +171,8 @@ object HttpApi {
           }
         } ~
         get {
-          onSuccess(issueView ? GetIssuesByDate(date.toLocalDate)) {
-            case issues: Vector[IssueView.IssueResponse] @unchecked =>
-              complete(issues)
+          onSuccess(issueService.getIssueByDate(date.toLocalDate)) { issues: Vector[IssueResponse] @unchecked =>
+            complete(issues)
           }
         }
       }
@@ -187,7 +186,7 @@ object HttpApi {
             eventBufferSize: Int,
             heartbeatInterval: FiniteDuration,
             issueRepositoryManager: ActorRef,
-            issueRead: ActorRef,
+            issueRead: IssueService,
             publishSubscribeMediator: ActorRef) =
     Props(
       new HttpApi(host,
@@ -207,7 +206,7 @@ final class HttpApi(host: String,
                     eventBufferSize: Int,
                     heartbeatInterval: FiniteDuration,
                     issueRepositoryManager: ActorRef,
-                    issueRead: ActorRef,
+                    issueService: IssueService,
                     publishSubscribeMediator: ActorRef)
     extends Actor
     with ActorLogging {
@@ -217,7 +216,7 @@ final class HttpApi(host: String,
 
   Http(context.system)
     .bindAndHandle(routes(issueRepositoryManager,
-                          issueRead,
+                          issueService,
                           publishSubscribeMediator,
                           requestTimeout,
                           eventBufferSize,

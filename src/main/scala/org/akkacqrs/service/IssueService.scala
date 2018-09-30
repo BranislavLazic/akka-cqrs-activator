@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package org.akkacqrs
+package org.akkacqrs.service
+import java.time.LocalDate
+import java.util.UUID
 
-import akka.actor.Actor
-import com.datastax.driver.core.Session
+import scala.concurrent.Future
 
-/**
-  * Actor with ability to manage a lifecycle of Cassandra cluster and Cassandra session.
-  */
-trait CassandraActor extends Actor {
+trait IssueService {
+  def getIssueByDateAndId(date: LocalDate, id: UUID): Future[Vector[IssueResponse]]
 
-  val session: Session = CassandraConnector.openConnection()
-  override def postStop(): Unit =
-    CassandraConnector.closeConnection(session)
+  def getIssueByDate(date: LocalDate): Future[Vector[IssueResponse]]
 }
