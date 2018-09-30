@@ -61,7 +61,7 @@ final class Root(readJournal: EventsByTagQuery) extends Actor with ActorLogging 
 
   private val publishSubscribeMediator: ActorRef = context.watch(DistributedPubSub(context.system).mediator)
   private val issueRepositoryManager: ActorRef   = context.watch(createIssueRepositoryManager(context))
-  private val issueService                       = IssueServiceCassandra(session, publishSubscribeMediator, readJournal)
+  private val issueService                       = new IssueServiceCassandra(session, publishSubscribeMediator, readJournal)
 
   createHttpApi(context,
                 host,

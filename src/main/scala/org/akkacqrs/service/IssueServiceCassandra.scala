@@ -36,22 +36,13 @@ import scala.concurrent.{ ExecutionContext, Future }
 /**
   * Subscribes to the IssueEvent's from mediator and manages issues in Cassandra.
   */
-object IssueServiceCassandra {
-
-  def apply(session: Session, publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery)(
-      implicit materializer: ActorMaterializer,
-      executionContext: ExecutionContext
-  ): IssueServiceCassandra = {
-    val issueView = new IssueServiceCassandra(session)
-    issueView.subscribeToEvents(publishSubscribeMediator, readJournal)
-    issueView
-  }
-}
-
-final class IssueServiceCassandra(session: Session)(implicit materializer: ActorMaterializer,
-                                                    executionContext: ExecutionContext)
-    extends IssueService {
+final class IssueServiceCassandra(session: Session, publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery)(
+    implicit materializer: ActorMaterializer,
+    executionContext: ExecutionContext
+) extends IssueService {
   import Settings.CassandraDb._
+
+  subscribeToEvents(publishSubscribeMediator, readJournal)
 
   override def getIssueByDateAndId(date: LocalDate, id: UUID): Future[Vector[IssueResponse]] =
     session
