@@ -2,6 +2,7 @@
 lib_managed
 project/project
 target
+src/main/resources/web/node_modules/
 
 # Worksheets (Eclipse or IntelliJ)
 *.sc

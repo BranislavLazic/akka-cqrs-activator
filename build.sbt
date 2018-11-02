@@ -28,8 +28,8 @@ lazy val `akka-cqrs-activator` =
 lazy val library =
   new {
     object Version {
-      val akka                     = "2.5.13"
-      val akkaHttp                 = "10.1.2"
+      val akka                     = "2.5.17"
+      val akkaHttp                 = "10.1.5"
       val akkaPersistenceCassandra = "0.85"
       val akkaPersistenceInMemory  = "2.5.1.1"
       val akkaHttpCirce            = "1.20.0"
