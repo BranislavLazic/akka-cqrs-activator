@@ -7,10 +7,12 @@
 - Scala 2.12
 - docker-compose version 1.8
 - SBT
+- NodeJS
 
 #### Up and run:
 
 - In root directory execute command: `docker-compose up -d` to start Cassandra
+- In `src/main/resources/web` directory execute command: `npm install` to download required AngularJS dependencies
 - Then execute command: `sbt run` or enter `sbt` console and execute `reStart` command to start server 
   (to stop server, type `reStop` and hit enter within the same `sbt` session).
   You should be able to access application at: http://localhost:8000 .  
