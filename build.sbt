@@ -16,6 +16,7 @@ lazy val `akka-cqrs-activator` =
         library.circeGeneric,
         library.akkaHttpTestkit         % Test,
         library.akkaPersistenceInMemory % Test,
+        library.mockito                 % Test,
         library.scalaCheck              % Test,
         library.scalaTest               % Test
       )
@@ -34,6 +35,7 @@ lazy val library =
       val akkaPersistenceInMemory  = "2.5.1.1"
       val akkaHttpCirce            = "1.20.0"
       val circeGeneric             = "0.9.3"
+      val mockito                  = "1.0.0"
       val scalaCheck               = "1.13.5"
       val scalaTest                = "3.0.4"
       val scalaProtobuf            = com.trueaccord.scalapb.compiler.Version.scalapbVersion
@@ -45,6 +47,7 @@ lazy val library =
     val akkaPersistenceInMemory  = "com.github.dnvriend"    %% "akka-persistence-inmemory"  % Version.akkaPersistenceInMemory
     val akkaHttpCirce            = "de.heikoseeberger"      %% "akka-http-circe"            % Version.akkaHttpCirce
     val circeGeneric             = "io.circe"               %% "circe-generic"              % Version.circeGeneric
+    val mockito                  = "org.mockito"            %% "mockito-scala"              % Version.mockito
     val scalaCheck               = "org.scalacheck"         %% "scalacheck"                 % Version.scalaCheck
     val scalaTest                = "org.scalatest"          %% "scalatest"                  % Version.scalaTest
     val scalapbRuntime           = "com.trueaccord.scalapb" %% "scalapb-runtime"            % Version.scalaProtobuf

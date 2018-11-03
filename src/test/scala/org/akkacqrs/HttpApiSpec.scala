@@ -27,12 +27,13 @@ import akka.stream.ActorMaterializer
 import akka.testkit.{ TestActor, TestProbe }
 import com.datastax.driver.core.utils.UUIDs
 import org.akkacqrs.service.{ IssueResponse, IssueService }
+import org.mockito.integrations.scalatest.MockitoFixture
 import org.scalatest.{ Matchers, WordSpec }
 
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.concurrent.duration._
 
-class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
+class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest with MockitoFixture {
 
   import akka.http.scaladsl.unmarshalling.sse.EventStreamUnmarshalling._
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -40,26 +41,6 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
   import org.akkacqrs.IssueRepository._
   import io.circe.generic.auto._
   import io.circe.syntax._
-
-  private class IssueServiceFake extends IssueService {
-    override def getIssueByDateAndId(
-        date: LocalDate,
-        id: UUID
-    ): Future[Vector[IssueResponse]] =
-      Future.successful(
-        Vector(
-          IssueResponse(UUID.randomUUID(), LocalDate.now().toString, "Summary", "No desc", IssueRepository.OpenedStatus)
-        )
-      )
-    override def getIssueByDate(
-        date: LocalDate
-    ): Future[Vector[IssueResponse]] =
-      Future.successful(
-        Vector(
-          IssueResponse(UUID.randomUUID(), LocalDate.now().toString, "Summary", "No desc", IssueRepository.OpenedStatus)
-        )
-      )
-  }
 
   implicit val context: ExecutionContextExecutor = system.dispatcher
 
@@ -72,9 +53,24 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
   private val summary         = "Test summary"
   private val description     = "Test description"
 
+  private val issueRead = mock[IssueService]
+  when(issueRead.getIssueByDate(any[LocalDate])).thenReturn(
+    Future.successful(
+      Vector(
+        IssueResponse(UUID.randomUUID(), LocalDate.now().toString, "Summary", "No desc", IssueRepository.OpenedStatus)
+      )
+    )
+  )
+  when(issueRead.getIssueByDateAndId(any[LocalDate], any[UUID])).thenReturn(
+    Future.successful(
+      Vector(
+        IssueResponse(UUID.randomUUID(), LocalDate.now().toString, "Summary", "No desc", IssueRepository.OpenedStatus)
+      )
+    )
+  )
+
   "HttpApi" should {
     "result in status code PermanentRedirect to index.html upon GET /" in {
-      val issueRead                                = new IssueServiceFake()
       val pubSubMediator                           = TestProbe()
       val issueRepositoryManager                   = TestProbe()
       implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -91,7 +87,6 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
     }
 
     "result in status code Created upon sending POST /issues" in {
-      val issueRead              = new IssueServiceFake()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
@@ -111,7 +106,6 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
     }
 
     s"result in status code OK upon sending PUT /issues/${date.toString}/${id.toString} when updating an issue" in {
-      val issueRead              = new IssueServiceFake()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
@@ -131,7 +125,6 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
     }
 
     s"result in status code OK and message upon sending PUT /issues/${date.toString}/${id.toString} when closing an issue" in {
-      val issueRead              = new IssueServiceFake()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
@@ -152,7 +145,6 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest {
     }
 
     s"result in status code OK and message upon sending DELETE /issues/${date.toString}/${id.toString}" in {
-      val issueRead              = new IssueServiceFake()
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
