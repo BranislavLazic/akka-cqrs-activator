@@ -40,7 +40,6 @@ lazy val library =
       val pbDirect                 = "0.1.0"
       val scalaCheck               = "1.13.5"
       val scalaTest                = "3.0.4"
-      val scalaProtobuf            = com.trueaccord.scalapb.compiler.Version.scalapbVersion
     }
     val akkaHttp                 = "com.typesafe.akka"      %% "akka-http"                  % Version.akkaHttp
     val akkaHttpTestkit          = "com.typesafe.akka"      %% "akka-http-testkit"          % Version.akkaHttp
@@ -53,7 +52,6 @@ lazy val library =
     val pbDirect                 = "beyondthelines"         %% "pbdirect"                   % Version.pbDirect
     val scalaCheck               = "org.scalacheck"         %% "scalacheck"                 % Version.scalaCheck
     val scalaTest                = "org.scalatest"          %% "scalatest"                  % Version.scalaTest
-    val scalapbRuntime           = "com.trueaccord.scalapb" %% "scalapb-runtime"            % Version.scalaProtobuf
   }
 
 // *****************************************************************************
@@ -63,8 +61,7 @@ lazy val library =
 lazy val settings =
 commonSettings ++
 gitSettings ++
-scalafmtSettings ++
-protobufSettings
+scalafmtSettings
 
 lazy val commonSettings =
   Seq(
@@ -72,7 +69,7 @@ lazy val commonSettings =
     // scalaVersion := "2.12.4",
     organization := "org.akkacqrs",
     organizationName := "Branislav Lazic",
-    startYear := Some(2017),
+    startYear := Some(2018),
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
     scalacOptions ++= Seq(
       "-unchecked",
@@ -98,14 +95,4 @@ lazy val scalafmtSettings =
     scalafmtOnCompile := true,
     scalafmtOnCompile.in(Sbt) := false,
     scalafmtVersion := "1.3.0"
-  )
-
-lazy val protobufSettings =
-  Seq(
-    PB.targets.in(Compile) := Seq(
-      scalapb.gen(flatPackage = true) -> sourceManaged.in(Compile).value
-    ),
-    libraryDependencies ++= Seq(
-      library.scalapbRuntime % "protobuf"
-    )
   )
