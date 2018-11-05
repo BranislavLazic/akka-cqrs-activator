@@ -60,35 +60,24 @@ object IssueRepository {
   final val OpenedStatus = "OPENED"
   final val ClosedStatus = "CLOSED"
 
-  sealed trait IssueCommand
   sealed trait Serializable extends JavaSerializable
 
-  final case class CreateIssue(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
+  sealed trait IssueCommand
+
+  final case class CreateIssue(id: UUID, summary: String, description: String, date: LocalDate, status: String)
       extends IssueCommand
   final case class UpdateIssue(id: UUID, summary: String, description: String, date: LocalDate) extends IssueCommand
   final case class CloseIssue(id: UUID, date: LocalDate)                                        extends IssueCommand
   final case class DeleteIssue(id: UUID, date: LocalDate)                                       extends IssueCommand
 
-  sealed trait IssueEvent
+  sealed trait IssueEvent extends Serializable
 
-  final case class IssueCreated(id: UUID, summary: String, description: String, date: LocalDate, status: IssueStatus)
+  final case class IssueCreated(id: UUID, summary: String, description: String, date: LocalDate, status: String)
       extends IssueEvent
-      with Serializable
-  final case class IssueUpdated(id: UUID, summary: String, description: String, date: LocalDate)
-      extends IssueEvent
-      with Serializable
-  final case class IssueClosed(id: UUID, date: LocalDate)  extends IssueEvent with Serializable
-  final case class IssueDeleted(id: UUID, date: LocalDate) extends IssueEvent with Serializable
-  final case class IssueUnprocessed(message: String)       extends IssueEvent
-
-  sealed trait IssueStatus
-
-  case object IssueOpenedStatus extends IssueStatus {
-    override def toString: String = OpenedStatus
-  }
-  case object IssueClosedStatus extends IssueStatus {
-    override def toString: String = ClosedStatus
-  }
+  final case class IssueUpdated(id: UUID, summary: String, description: String, date: LocalDate) extends IssueEvent
+  final case class IssueClosed(id: UUID, date: LocalDate)                                        extends IssueEvent
+  final case class IssueDeleted(id: UUID, date: LocalDate)                                       extends IssueEvent
+  final case class IssueUnprocessed(message: String)                                             extends IssueEvent
 
   def props(id: UUID, date: LocalDate) = Props(new IssueRepository(id, date))
 }

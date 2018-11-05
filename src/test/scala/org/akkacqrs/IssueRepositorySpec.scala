@@ -34,7 +34,7 @@ class IssueRepositorySpec extends WordSpec with Matchers with BaseSpec {
     val summary                      = "Test summary"
     val description                  = "Test description"
     val date                         = LocalDate.now()
-    val status                       = IssueOpenedStatus
+    val status                       = IssueRepository.OpenedStatus
 
     val issueRepository = system.actorOf(IssueRepository.props(uuid, date))
 

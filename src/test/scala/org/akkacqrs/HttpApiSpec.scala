@@ -93,8 +93,8 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest with Mo
       issueRepositoryManager.setAutoPilot(
         (sender: ActorRef, msg: Any) =>
           msg match {
-            case CreateIssue(_, `summary`, `description`, `date`, IssueOpenedStatus) =>
-              sender ! IssueCreated(id, summary, description, date, IssueOpenedStatus)
+            case CreateIssue(_, `summary`, `description`, `date`, IssueRepository.OpenedStatus) =>
+              sender ! IssueCreated(id, summary, description, date, IssueRepository.OpenedStatus)
               TestActor.NoAutoPilot
         }
       )

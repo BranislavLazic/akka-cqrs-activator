@@ -14,6 +14,7 @@ lazy val `akka-cqrs-activator` =
         library.akkaPersistence,
         library.akkaPersistenceCassandra,
         library.circeGeneric,
+        library.pbDirect,
         library.akkaHttpTestkit         % Test,
         library.akkaPersistenceInMemory % Test,
         library.mockito                 % Test,
@@ -36,6 +37,7 @@ lazy val library =
       val akkaHttpCirce            = "1.20.0"
       val circeGeneric             = "0.9.3"
       val mockito                  = "1.0.0"
+      val pbDirect                 = "0.1.0"
       val scalaCheck               = "1.13.5"
       val scalaTest                = "3.0.4"
       val scalaProtobuf            = com.trueaccord.scalapb.compiler.Version.scalapbVersion
@@ -48,6 +50,7 @@ lazy val library =
     val akkaHttpCirce            = "de.heikoseeberger"      %% "akka-http-circe"            % Version.akkaHttpCirce
     val circeGeneric             = "io.circe"               %% "circe-generic"              % Version.circeGeneric
     val mockito                  = "org.mockito"            %% "mockito-scala"              % Version.mockito
+    val pbDirect                 = "beyondthelines"         %% "pbdirect"                   % Version.pbDirect
     val scalaCheck               = "org.scalacheck"         %% "scalacheck"                 % Version.scalaCheck
     val scalaTest                = "org.scalatest"          %% "scalatest"                  % Version.scalaTest
     val scalapbRuntime           = "com.trueaccord.scalapb" %% "scalapb-runtime"            % Version.scalaProtobuf
@@ -81,7 +84,8 @@ lazy val commonSettings =
       "-Ypartial-unification"
     ),
     unmanagedSourceDirectories.in(Compile) := Seq(scalaSource.in(Compile).value),
-    unmanagedSourceDirectories.in(Test) := Seq(scalaSource.in(Test).value)
+    unmanagedSourceDirectories.in(Test) := Seq(scalaSource.in(Test).value),
+    resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
   )
 
 lazy val gitSettings =

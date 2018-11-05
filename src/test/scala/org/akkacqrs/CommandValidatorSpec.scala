@@ -21,7 +21,7 @@ import java.util.UUID
 
 import cats.data.NonEmptyList
 import cats.data.Validated.{ Invalid, Valid }
-import org.akkacqrs.IssueRepository.{ CreateIssue, IssueOpenedStatus }
+import org.akkacqrs.IssueRepository.CreateIssue
 import org.scalatest.{ Matchers, WordSpec }
 
 class CommandValidatorSpec extends WordSpec with Matchers {
@@ -29,7 +29,9 @@ class CommandValidatorSpec extends WordSpec with Matchers {
 
   "Command validator" should {
     "return errors if name in CreateIssue is empty" in {
-      validateCreateIssue(CreateIssue(UUID.randomUUID(), null, "test description", LocalDate.now(), IssueOpenedStatus)) should be(
+      validateCreateIssue(
+        CreateIssue(UUID.randomUUID(), null, "test description", LocalDate.now(), IssueRepository.OpenedStatus)
+      ) should be(
         Invalid(new NonEmptyList(ValidationError("summary", "Summary cannot be null."), Nil))
       )
     }
@@ -41,7 +43,7 @@ class CommandValidatorSpec extends WordSpec with Matchers {
           "abcdefghijklmnopqrstuvwxyzabcdefabcdefghijklmnopqrstuvwxyzabcdefabcdefghijklmnopqrstuvwxyzabcdefabcde",
           "test description",
           LocalDate.now(),
-          IssueOpenedStatus
+          IssueRepository.OpenedStatus
         )
       ) should be(
         Invalid(new NonEmptyList(ValidationError("summary", "Summary cannot have more than 100 characters."), Nil))
@@ -50,7 +52,11 @@ class CommandValidatorSpec extends WordSpec with Matchers {
 
     "return valid command" in {
       val createIssue =
-        CreateIssue(UUID.randomUUID(), "test summary", "test description", LocalDate.now(), IssueOpenedStatus)
+        CreateIssue(UUID.randomUUID(),
+                    "test summary",
+                    "test description",
+                    LocalDate.now(),
+                    IssueRepository.OpenedStatus)
       validateCreateIssue(createIssue) should be(Valid(createIssue))
     }
   }

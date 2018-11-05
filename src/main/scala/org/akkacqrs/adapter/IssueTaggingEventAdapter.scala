@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package org.akkacqrs
+package org.akkacqrs.adapter
 
 import akka.persistence.journal.{ Tagged, WriteEventAdapter }
+import org.akkacqrs.IssueRepository
 
 /**
   * Creates a tag with the unique name for IssueEvent's.

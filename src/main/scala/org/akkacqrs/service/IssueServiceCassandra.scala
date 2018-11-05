@@ -88,7 +88,7 @@ final class IssueServiceCassandra(session: Session, publishSubscribeMediator: Ac
     case event: IssueClosed =>
       session
         .executeAsync(s"UPDATE $keyspace.issues SET issue_status = ? WHERE date_updated = ? AND id = ?;",
-                      IssueClosedStatus.toString,
+                      IssueRepository.ClosedStatus,
                       event.date.toString,
                       event.id)
         .toFuture

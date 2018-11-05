@@ -21,7 +21,6 @@ import java.time.format.DateTimeFormatter
 
 import com.google.common.util.concurrent.{ FutureCallback, Futures, ListenableFuture }
 import io.circe.Encoder
-import org.akkacqrs.IssueRepository.IssueStatus
 
 import scala.concurrent.{ Future, Promise }
 import scala.reflect.{ classTag, ClassTag }
@@ -52,6 +51,5 @@ package object akkacqrs {
 
   def className[A: ClassTag]: String = classTag[A].runtimeClass.getName
 
-  implicit val localDateEncoder: Encoder[LocalDate]     = Encoder.encodeString.contramap[LocalDate](_.toString)
-  implicit val issueStatusEncoder: Encoder[IssueStatus] = Encoder.encodeString.contramap[IssueStatus](_.toString)
+  implicit val localDateEncoder: Encoder[LocalDate] = Encoder.encodeString.contramap[LocalDate](_.toString)
 }

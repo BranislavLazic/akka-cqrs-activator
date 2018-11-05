@@ -111,7 +111,7 @@ object HttpApi {
                                                    summary,
                                                    description,
                                                    date.toLocalDate,
-                                                   IssueOpenedStatus)
+                                                   IssueRepository.OpenedStatus)
             ) {
               case IssueCreated(id, _, _, dateCreated, _) =>
                 extractRequestContext { context =>
@@ -158,7 +158,7 @@ object HttpApi {
           get {
             onSuccess(issueService.getIssueByDateAndId(date.toLocalDate, `id`)) {
               issues: Vector[IssueResponse] @unchecked =>
-                complete(issues.head)
+                complete(issues.headOption)
             }
           } ~
           delete {
