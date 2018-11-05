@@ -22,7 +22,7 @@ import java.util.UUID
 
 import akka.serialization.SerializerWithStringManifest
 
-final class IssueSerializer extends SerializerWithStringManifest {
+final class IssueEventSerializer extends SerializerWithStringManifest {
   import cats.syntax.invariant._
   import org.akkacqrs.IssueRepository._
   import pbdirect._
