@@ -21,17 +21,21 @@ import java.time.LocalDate
 import java.util.UUID
 
 import akka.serialization.SerializerWithStringManifest
+import pbdirect.PBFormat
+import cats.syntax.invariant._
+import pbdirect._
 
-final class IssueEventSerializer extends SerializerWithStringManifest {
-  import cats.syntax.invariant._
-  import org.akkacqrs.IssueRepository._
-  import pbdirect._
-
-  private implicit val localDateFormat: PBFormat[LocalDate] =
+object IssueEventSerializer {
+  implicit val localDateFormat: PBFormat[LocalDate] =
     PBFormat[String].imap(LocalDate.parse)(_.toString)
 
-  private implicit val uuidFormat: PBFormat[UUID] =
+  implicit val uuidFormat: PBFormat[UUID] =
     PBFormat[String].imap(UUID.fromString)(_.toString)
+}
+
+final class IssueEventSerializer extends SerializerWithStringManifest {
+  import org.akkacqrs.IssueRepository._
+  import IssueEventSerializer._
 
   override def identifier: Int = getClass.getName.hashCode
 
