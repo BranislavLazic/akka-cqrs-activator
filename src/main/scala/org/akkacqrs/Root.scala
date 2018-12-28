@@ -20,7 +20,7 @@ import akka.actor.{ Actor, ActorContext, ActorLogging, ActorRef, Props, Terminat
 import akka.cluster.pubsub.DistributedPubSub
 import akka.persistence.query.scaladsl.EventsByTagQuery
 import akka.stream.ActorMaterializer
-import org.akkacqrs.service.{ IssueService, IssueServiceCassandra }
+import org.akkacqrs.service.{ IssueService, IssueServiceImpl }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -61,7 +61,7 @@ final class Root(readJournal: EventsByTagQuery) extends Actor with ActorLogging 
 
   private val publishSubscribeMediator: ActorRef = context.watch(DistributedPubSub(context.system).mediator)
   private val issueRepositoryManager: ActorRef   = context.watch(createIssueRepositoryManager(context))
-  private val issueService                       = new IssueServiceCassandra(session, publishSubscribeMediator, readJournal)
+  private val issueService                       = new IssueServiceImpl(session, publishSubscribeMediator, readJournal)
 
   createHttpApi(context,
                 host,

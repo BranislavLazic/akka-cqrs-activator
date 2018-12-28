@@ -34,9 +34,9 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 
 /**
-  * Subscribes to the IssueEvent's from mediator and manages issues in Cassandra.
+  * Subscribes to the IssueEvent's from mediator and manages issues in data store.
   */
-final class IssueServiceCassandra(session: Session, publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery)(
+final class IssueServiceImpl(session: Session, publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery)(
     implicit materializer: ActorMaterializer,
     executionContext: ExecutionContext
 ) extends IssueService {
