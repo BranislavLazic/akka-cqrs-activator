@@ -15,6 +15,7 @@ lazy val `akka-cqrs-activator` =
         library.akkaPersistenceCassandra,
         library.circeGeneric,
         library.pbDirect,
+        library.akkaTestkit             % Test,
         library.akkaHttpTestkit         % Test,
         library.akkaPersistenceInMemory % Test,
         library.mockito                 % Test,
@@ -30,18 +31,19 @@ lazy val `akka-cqrs-activator` =
 lazy val library =
   new {
     object Version {
-      val akka                     = "2.5.17"
-      val akkaHttp                 = "10.1.5"
+      val akka                     = "2.5.23"
+      val akkaHttp                 = "10.1.9"
       val akkaPersistenceCassandra = "0.85"
       val akkaPersistenceInMemory  = "2.5.1.1"
-      val akkaHttpCirce            = "1.20.0"
-      val circeGeneric             = "0.9.3"
+      val akkaHttpCirce            = "1.27.0"
+      val circeGeneric             = "0.11.1"
       val mockito                  = "1.0.0"
       val pbDirect                 = "0.1.0"
       val scalaCheck               = "1.13.5"
       val scalaTest                = "3.0.4"
     }
     val akkaHttp                 = "com.typesafe.akka"      %% "akka-http"                  % Version.akkaHttp
+    val akkaTestkit              = "com.typesafe.akka"      %% "akka-testkit"               % Version.akka
     val akkaHttpTestkit          = "com.typesafe.akka"      %% "akka-http-testkit"          % Version.akkaHttp
     val akkaPersistence          = "com.typesafe.akka"      %% "akka-persistence"           % Version.akka
     val akkaPersistenceCassandra = "com.typesafe.akka"      %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
