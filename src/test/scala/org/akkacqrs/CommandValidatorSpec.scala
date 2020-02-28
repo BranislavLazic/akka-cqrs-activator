@@ -52,11 +52,13 @@ class CommandValidatorSpec extends WordSpec with Matchers {
 
     "return valid command" in {
       val createIssue =
-        CreateIssue(UUID.randomUUID(),
-                    "test summary",
-                    "test description",
-                    LocalDate.now(),
-                    IssueRepository.OpenedStatus)
+        CreateIssue(
+          UUID.randomUUID(),
+          "test summary",
+          "test description",
+          LocalDate.now(),
+          IssueRepository.OpenedStatus
+        )
       validateCreateIssue(createIssue) should be(Valid(createIssue))
     }
   }

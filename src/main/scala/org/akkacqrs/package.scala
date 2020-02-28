@@ -18,12 +18,13 @@ package org
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.Executors
 
 import com.google.common.util.concurrent.{ FutureCallback, Futures, ListenableFuture }
 import io.circe.Encoder
 
 import scala.concurrent.{ Future, Promise }
-import scala.reflect.{ classTag, ClassTag }
+import scala.reflect.{ ClassTag, classTag }
 
 package object akkacqrs {
 
@@ -32,14 +33,20 @@ package object akkacqrs {
   type Seq[+A]         = scala.collection.immutable.Seq[A]
   type IndexedSeq[+A]  = scala.collection.immutable.IndexedSeq[A]
 
+  val executor = Executors.newFixedThreadPool(4)
+
   implicit class RichResultSetFuture[ResultSet](rsf: ListenableFuture[ResultSet]) {
     def toFuture: Future[ResultSet] = {
       val promise = Promise[ResultSet]()
-      Futures.addCallback(rsf, new FutureCallback[ResultSet] {
-        def onFailure(t: Throwable): Unit = promise.failure(t)
+      Futures.addCallback(
+        rsf,
+        new FutureCallback[ResultSet] {
+          def onFailure(t: Throwable): Unit = promise.failure(t)
 
-        def onSuccess(result: ResultSet): Unit = promise.success(result)
-      })
+          def onSuccess(result: ResultSet): Unit = promise.success(result)
+        },
+        executor
+      )
       promise.future
     }
   }

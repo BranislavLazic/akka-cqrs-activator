@@ -49,12 +49,14 @@ object HttpApi {
 
   final val Name = "http-server"
 
-  def routes(issueRepositoryManager: ActorRef,
-             issueService: IssueService,
-             publishSubscribeMediator: ActorRef,
-             requestTimeout: FiniteDuration,
-             eventBufferSize: Int,
-             heartbeatInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Route = {
+  def routes(
+      issueRepositoryManager: ActorRef,
+      issueService: IssueService,
+      publishSubscribeMediator: ActorRef,
+      requestTimeout: FiniteDuration,
+      eventBufferSize: Int,
+      heartbeatInterval: FiniteDuration
+  )(implicit executionContext: ExecutionContext): Route = {
 
     import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
     import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
@@ -107,11 +109,13 @@ object HttpApi {
         entity(as[CreateIssueRequest]) {
           case CreateIssueRequest(date: String, summary: String, description: String) =>
             onSuccess(
-              issueRepositoryManager ? CreateIssue(UUIDs.timeBased(),
-                                                   summary,
-                                                   description,
-                                                   date.toLocalDate,
-                                                   IssueRepository.OpenedStatus)
+              issueRepositoryManager ? CreateIssue(
+                UUIDs.timeBased(),
+                summary,
+                description,
+                date.toLocalDate,
+                IssueRepository.OpenedStatus
+              )
             ) {
               case IssueCreated(id, _, _, dateCreated, _) =>
                 extractRequestContext { context =>
@@ -180,49 +184,58 @@ object HttpApi {
     api ~ assets
   }
 
-  def props(host: String,
-            port: Int,
-            requestTimeout: FiniteDuration,
-            eventBufferSize: Int,
-            heartbeatInterval: FiniteDuration,
-            issueRepositoryManager: ActorRef,
-            issueRead: IssueService,
-            publishSubscribeMediator: ActorRef) =
+  def props(
+      host: String,
+      port: Int,
+      requestTimeout: FiniteDuration,
+      eventBufferSize: Int,
+      heartbeatInterval: FiniteDuration,
+      issueRepositoryManager: ActorRef,
+      issueRead: IssueService,
+      publishSubscribeMediator: ActorRef
+  ) =
     Props(
-      new HttpApi(host,
-                  port,
-                  requestTimeout,
-                  eventBufferSize,
-                  heartbeatInterval: FiniteDuration,
-                  issueRepositoryManager,
-                  issueRead,
-                  publishSubscribeMediator)
+      new HttpApi(
+        host,
+        port,
+        requestTimeout,
+        eventBufferSize,
+        heartbeatInterval: FiniteDuration,
+        issueRepositoryManager,
+        issueRead,
+        publishSubscribeMediator
+      )
     )
 }
 
-final class HttpApi(host: String,
-                    port: Int,
-                    requestTimeout: FiniteDuration,
-                    eventBufferSize: Int,
-                    heartbeatInterval: FiniteDuration,
-                    issueRepositoryManager: ActorRef,
-                    issueService: IssueService,
-                    publishSubscribeMediator: ActorRef)
-    extends Actor
+final class HttpApi(
+    host: String,
+    port: Int,
+    requestTimeout: FiniteDuration,
+    eventBufferSize: Int,
+    heartbeatInterval: FiniteDuration,
+    issueRepositoryManager: ActorRef,
+    issueService: IssueService,
+    publishSubscribeMediator: ActorRef
+) extends Actor
     with ActorLogging {
   import context.dispatcher
   import HttpApi._
   private implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   Http(context.system)
-    .bindAndHandle(routes(issueRepositoryManager,
-                          issueService,
-                          publishSubscribeMediator,
-                          requestTimeout,
-                          eventBufferSize,
-                          heartbeatInterval),
-                   host,
-                   port)
+    .bindAndHandle(
+      routes(
+        issueRepositoryManager,
+        issueService,
+        publishSubscribeMediator,
+        requestTimeout,
+        eventBufferSize,
+        heartbeatInterval
+      ),
+      host,
+      port
+    )
     .pipeTo(self)
 
   override def receive: Receive = {

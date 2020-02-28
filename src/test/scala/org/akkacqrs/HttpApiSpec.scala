@@ -75,12 +75,14 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest with Mo
       val issueRepositoryManager                   = TestProbe()
       implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-      Get("/") ~> routes(issueRepositoryManager.ref,
-                         issueRead,
-                         pubSubMediator.ref,
-                         timeout,
-                         eventBufferSize,
-                         heartbeatInterval) ~> check {
+      Get("/") ~> routes(
+        issueRepositoryManager.ref,
+        issueRead,
+        pubSubMediator.ref,
+        timeout,
+        eventBufferSize,
+        heartbeatInterval
+      ) ~> check {
         status shouldBe StatusCodes.PermanentRedirect
         header[Location] shouldBe Some(Location(Uri("index.html")))
       }
@@ -90,13 +92,12 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest with Mo
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
-      issueRepositoryManager.setAutoPilot(
-        (sender: ActorRef, msg: Any) =>
-          msg match {
-            case CreateIssue(_, `summary`, `description`, `date`, IssueRepository.OpenedStatus) =>
-              sender ! IssueCreated(id, summary, description, date, IssueRepository.OpenedStatus)
-              TestActor.NoAutoPilot
-        }
+      issueRepositoryManager.setAutoPilot((sender: ActorRef, msg: Any) =>
+        (msg match {
+          case CreateIssue(_, `summary`, `description`, `date`, IssueRepository.OpenedStatus) =>
+            sender ! IssueCreated(id, summary, description, date, IssueRepository.OpenedStatus)
+            TestActor.NoAutoPilot
+        })
       )
 
       Post("/issues", CreateIssueRequest(date.toString, summary, description)) ~>
@@ -109,13 +110,12 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest with Mo
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
-      issueRepositoryManager.setAutoPilot(
-        (sender: ActorRef, msg: Any) =>
-          msg match {
-            case UpdateIssue(`id`, `summary`, `description`, `date`) =>
-              sender ! IssueUpdated(id, summary, description, date)
-              TestActor.NoAutoPilot
-        }
+      issueRepositoryManager.setAutoPilot((sender: ActorRef, msg: Any) =>
+        (msg match {
+          case UpdateIssue(`id`, `summary`, `description`, `date`) =>
+            sender ! IssueUpdated(id, summary, description, date)
+            TestActor.NoAutoPilot
+        })
       )
 
       Put(s"/issues/${date.toString}/${id.toString}", UpdateRequest(summary, description)) ~>
@@ -128,13 +128,12 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest with Mo
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
-      issueRepositoryManager.setAutoPilot(
-        (sender: ActorRef, msg: Any) =>
-          msg match {
-            case CloseIssue(`id`, `date`) =>
-              sender ! IssueClosed(id, date)
-              TestActor.NoAutoPilot
-        }
+      issueRepositoryManager.setAutoPilot((sender: ActorRef, msg: Any) =>
+        (msg match {
+          case CloseIssue(`id`, `date`) =>
+            sender ! IssueClosed(id, date)
+            TestActor.NoAutoPilot
+        })
       )
 
       Put(s"/issues/${date.toString}/${id.toString}") ~>
@@ -148,13 +147,12 @@ class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest with Mo
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
-      issueRepositoryManager.setAutoPilot(
-        (sender: ActorRef, msg: Any) =>
-          msg match {
-            case DeleteIssue(`id`, `date`) =>
-              sender ! IssueDeleted(id, date)
-              TestActor.NoAutoPilot
-        }
+      issueRepositoryManager.setAutoPilot((sender: ActorRef, msg: Any) =>
+        (msg match {
+          case DeleteIssue(`id`, `date`) =>
+            sender ! IssueDeleted(id, date)
+            TestActor.NoAutoPilot
+        })
       )
 
       Delete(s"/issues/${date.toString}/${id.toString}") ~>

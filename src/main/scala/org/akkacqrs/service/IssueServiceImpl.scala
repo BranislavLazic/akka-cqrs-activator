@@ -28,7 +28,7 @@ import akka.stream.scaladsl.Sink
 import com.datastax.driver.core.utils.UUIDs
 import com.datastax.driver.core.{ ResultSet, Session }
 import org.akkacqrs.IssueRepository._
-import org.akkacqrs.{ className, Settings }
+import org.akkacqrs.{ Settings, className }
 import org.akkacqrs._
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -59,14 +59,14 @@ final class IssueServiceImpl(session: Session, publishSubscribeMediator: ActorRe
   private def resultSetToIssueResponse(rs: ResultSet) =
     rs.all()
       .asScala
-      .map(row => {
+      .map { row =>
         val id          = row.getUUID("id")
         val summary     = row.getString("summary")
         val dateUpdated = row.getString("date_updated")
         val description = row.getString("description")
         val status      = row.getString("issue_status")
         IssueResponse(id, dateUpdated, summary, description, status)
-      })
+      }
       .toVector
 
   private def handleEvent(event: Any): Future[IssueEvent] = event match {
@@ -87,10 +87,12 @@ final class IssueServiceImpl(session: Session, publishSubscribeMediator: ActorRe
         .map(_ => event)
     case event: IssueClosed =>
       session
-        .executeAsync(s"UPDATE $keyspace.issues SET issue_status = ? WHERE date_updated = ? AND id = ?;",
-                      IssueRepository.ClosedStatus,
-                      event.date.toString,
-                      event.id)
+        .executeAsync(
+          s"UPDATE $keyspace.issues SET issue_status = ? WHERE date_updated = ? AND id = ?;",
+          IssueRepository.ClosedStatus,
+          event.date.toString,
+          event.id
+        )
         .toFuture
         .map(_ => event)
     case event: IssueUpdated =>

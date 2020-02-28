@@ -30,24 +30,30 @@ object Root {
   private def createIssueRepositoryManager(context: ActorContext) =
     context.actorOf(IssueRepositoryManager.props, IssueRepositoryManager.Name)
 
-  private def createHttpApi(context: ActorContext,
-                            host: String,
-                            port: Int,
-                            requestTimeout: FiniteDuration,
-                            eventBufferSize: Int,
-                            heartbeatInterval: FiniteDuration,
-                            issueRepositoryManager: ActorRef,
-                            issueService: IssueService,
-                            publishSubscribeMediator: ActorRef) =
-    context.actorOf(HttpApi.props(host,
-                                  port,
-                                  requestTimeout,
-                                  eventBufferSize,
-                                  heartbeatInterval,
-                                  issueRepositoryManager,
-                                  issueService,
-                                  publishSubscribeMediator),
-                    HttpApi.Name)
+  private def createHttpApi(
+      context: ActorContext,
+      host: String,
+      port: Int,
+      requestTimeout: FiniteDuration,
+      eventBufferSize: Int,
+      heartbeatInterval: FiniteDuration,
+      issueRepositoryManager: ActorRef,
+      issueService: IssueService,
+      publishSubscribeMediator: ActorRef
+  ) =
+    context.actorOf(
+      HttpApi.props(
+        host,
+        port,
+        requestTimeout,
+        eventBufferSize,
+        heartbeatInterval,
+        issueRepositoryManager,
+        issueService,
+        publishSubscribeMediator
+      ),
+      HttpApi.Name
+    )
 
   def props(readJournal: EventsByTagQuery) = Props(new Root(readJournal))
 }
@@ -63,15 +69,17 @@ final class Root(readJournal: EventsByTagQuery) extends Actor with ActorLogging 
   private val issueRepositoryManager: ActorRef   = context.watch(createIssueRepositoryManager(context))
   private val issueService                       = new IssueServiceImpl(session, publishSubscribeMediator, readJournal)
 
-  createHttpApi(context,
-                host,
-                port,
-                requestTimeout,
-                eventBufferSize,
-                heartbeatInterval,
-                issueRepositoryManager,
-                issueService,
-                publishSubscribeMediator)
+  createHttpApi(
+    context,
+    host,
+    port,
+    requestTimeout,
+    eventBufferSize,
+    heartbeatInterval,
+    issueRepositoryManager,
+    issueService,
+    publishSubscribeMediator
+  )
 
   override def receive: Receive = {
     case Terminated(actor) =>

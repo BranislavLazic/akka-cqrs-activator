@@ -9,19 +9,19 @@ lazy val `akka-cqrs-activator` =
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
-        library.akkaHttp,
-        library.akkaHttpCirce,
-        library.akkaPersistence,
-        library.akkaPersistenceCassandra,
-        library.circeGeneric,
-        library.pbDirect,
-        library.akkaTestkit             % Test,
-        library.akkaHttpTestkit         % Test,
-        library.akkaPersistenceInMemory % Test,
-        library.mockito                 % Test,
-        library.scalaCheck              % Test,
-        library.scalaTest               % Test
-      )
+          library.akkaHttp,
+          library.akkaHttpCirce,
+          library.akkaPersistence,
+          library.akkaPersistenceCassandra,
+          library.circeGeneric,
+          library.pbDirect,
+          library.akkaTestkit             % Test,
+          library.akkaHttpTestkit         % Test,
+          library.akkaPersistenceInMemory % Test,
+          library.mockito                 % Test,
+          library.scalaCheck              % Test,
+          library.scalaTest               % Test
+        )
     )
 
 // *****************************************************************************
@@ -42,18 +42,18 @@ lazy val library =
       val scalaCheck               = "1.13.5"
       val scalaTest                = "3.0.4"
     }
-    val akkaHttp                 = "com.typesafe.akka"      %% "akka-http"                  % Version.akkaHttp
-    val akkaTestkit              = "com.typesafe.akka"      %% "akka-testkit"               % Version.akka
-    val akkaHttpTestkit          = "com.typesafe.akka"      %% "akka-http-testkit"          % Version.akkaHttp
-    val akkaPersistence          = "com.typesafe.akka"      %% "akka-persistence"           % Version.akka
-    val akkaPersistenceCassandra = "com.typesafe.akka"      %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
-    val akkaPersistenceInMemory  = "com.github.dnvriend"    %% "akka-persistence-inmemory"  % Version.akkaPersistenceInMemory
-    val akkaHttpCirce            = "de.heikoseeberger"      %% "akka-http-circe"            % Version.akkaHttpCirce
-    val circeGeneric             = "io.circe"               %% "circe-generic"              % Version.circeGeneric
-    val mockito                  = "org.mockito"            %% "mockito-scala"              % Version.mockito
-    val pbDirect                 = "beyondthelines"         %% "pbdirect"                   % Version.pbDirect
-    val scalaCheck               = "org.scalacheck"         %% "scalacheck"                 % Version.scalaCheck
-    val scalaTest                = "org.scalatest"          %% "scalatest"                  % Version.scalaTest
+    val akkaHttp                 = "com.typesafe.akka"   %% "akka-http"                  % Version.akkaHttp
+    val akkaTestkit              = "com.typesafe.akka"   %% "akka-testkit"               % Version.akka
+    val akkaHttpTestkit          = "com.typesafe.akka"   %% "akka-http-testkit"          % Version.akkaHttp
+    val akkaPersistence          = "com.typesafe.akka"   %% "akka-persistence"           % Version.akka
+    val akkaPersistenceCassandra = "com.typesafe.akka"   %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
+    val akkaPersistenceInMemory  = "com.github.dnvriend" %% "akka-persistence-inmemory"  % Version.akkaPersistenceInMemory
+    val akkaHttpCirce            = "de.heikoseeberger"   %% "akka-http-circe"            % Version.akkaHttpCirce
+    val circeGeneric             = "io.circe"            %% "circe-generic"              % Version.circeGeneric
+    val mockito                  = "org.mockito"         %% "mockito-scala"              % Version.mockito
+    val pbDirect                 = "beyondthelines"      %% "pbdirect"                   % Version.pbDirect
+    val scalaCheck               = "org.scalacheck"      %% "scalacheck"                 % Version.scalaCheck
+    val scalaTest                = "org.scalatest"       %% "scalatest"                  % Version.scalaTest
   }
 
 // *****************************************************************************
@@ -61,9 +61,9 @@ lazy val library =
 // *****************************************************************************
 
 lazy val settings =
-commonSettings ++
-gitSettings ++
-scalafmtSettings
+  commonSettings ++
+  gitSettings ++
+  scalafmtSettings
 
 lazy val commonSettings =
   Seq(
@@ -74,14 +74,14 @@ lazy val commonSettings =
     startYear := Some(2018),
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
     scalacOptions ++= Seq(
-      "-unchecked",
-      "-deprecation",
-      "-language:_",
-      "-target:jvm-1.8",
-      "-encoding",
-      "UTF-8",
-      "-Ypartial-unification"
-    ),
+        "-unchecked",
+        "-deprecation",
+        "-language:_",
+        "-target:jvm-1.8",
+        "-encoding",
+        "UTF-8",
+        "-Ypartial-unification"
+      ),
     unmanagedSourceDirectories.in(Compile) := Seq(scalaSource.in(Compile).value),
     unmanagedSourceDirectories.in(Test) := Seq(scalaSource.in(Test).value),
     resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
@@ -94,7 +94,5 @@ lazy val gitSettings =
 
 lazy val scalafmtSettings =
   Seq(
-    scalafmtOnCompile := true,
-    scalafmtOnCompile.in(Sbt) := false,
-    scalafmtVersion := "1.3.0"
+    scalafmtOnCompile := true
   )
