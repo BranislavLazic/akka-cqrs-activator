@@ -1,1 +1,1 @@
-export { default } from "./IssuePage";
+export { default as IssuePage } from './IssuePage';

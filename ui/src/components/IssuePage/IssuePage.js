@@ -1,12 +1,14 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { Breadcrumb, Card, Col, Row } from "antd";
-import { CalendarOutlined } from "@ant-design/icons";
-import { fetchIssuesByDate } from "./issuesApi";
+import React, { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { Breadcrumb, Card, Col, Row } from 'antd';
+import { CalendarOutlined } from '@ant-design/icons';
+import { fetchIssuesByDate } from './issuesApi';
+import { IssueModal } from '../IssueModal';
 
 const IssuePage = () => {
   const { date } = useParams();
   const [issues, setIssues] = useState([]);
+
   useEffect(() => {
     if (date) {
       (async () => {
@@ -32,6 +34,7 @@ const IssuePage = () => {
           <span>{date}</span>
         </Breadcrumb.Item>
       </Breadcrumb>
+      <IssueModal visible={false} />
       {issues.map(({ id, summary, description }) => (
         <Row key={id} gutter={[16, 16]}>
           <Col span={12}>

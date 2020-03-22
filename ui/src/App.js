@@ -1,9 +1,9 @@
-import React from "react";
-import { Router, Switch, Route } from "react-router-dom";
-import { createBrowserHistory } from "history";
+import React from 'react';
+import { Router, Switch, Route } from 'react-router-dom';
+import { createBrowserHistory } from 'history';
 
-import Calendar from "./components/Calendar";
-import IssuePage from "./components/IssuePage";
+import { Calendar } from './components/Calendar';
+import { IssuePage } from './components/IssuePage';
 
 const history = createBrowserHistory();
 
@@ -14,7 +14,7 @@ const App = () => {
         <Route path="/" exact>
           <Calendar />
         </Route>
-        <Route path={"/issues/:date"} component={IssuePage} />
+        <Route path={'/issues/:date'} component={IssuePage} />
       </Switch>
     </Router>
   );
