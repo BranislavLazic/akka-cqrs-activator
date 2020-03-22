@@ -1,3 +1,4 @@
+import scala.sys.process._
 // *****************************************************************************
 // Projects
 // *****************************************************************************
@@ -6,6 +7,7 @@ lazy val `akka-cqrs-activator` =
   project
     .in(file("."))
     .enablePlugins(AutomateHeaderPlugin, GitVersioning, GitBranchPrompt)
+    .dependsOn(`ui`)
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
@@ -22,6 +24,29 @@ lazy val `akka-cqrs-activator` =
           library.scalaCheck              % Test,
           library.scalaTest               % Test
         )
+    )
+lazy val frontendTask      = taskKey[Unit]("execute frontend task")
+lazy val frontendOutputDir = settingKey[File]("output directory for target files")
+lazy val frontendBuildDir  = settingKey[File]("output directory for build files")
+
+frontendBuildDir in Global := baseDirectory.value / "ui" / "build"
+frontendOutputDir in Global := baseDirectory.value / "ui" / "target" / s"scala-${scalaBinaryVersion.value}" / "classes"
+
+frontendTask in Global := {
+  Process("yarn build", new File("./ui")).!!
+  IO.copyDirectory(frontendBuildDir.value, frontendOutputDir.value)
+}
+
+lazy val `ui` =
+  project
+    .in(file("./ui"))
+    .settings(settings)
+    .settings(
+      compile in Compile := {
+        frontendTask.value
+        (compile in Compile).value
+      },
+      resourceDirectory in Compile := baseDirectory.value / "build"
     )
 
 // *****************************************************************************
@@ -96,3 +121,7 @@ lazy val scalafmtSettings =
   Seq(
     scalafmtOnCompile := true
   )
+
+addCommandAlias("c", "compile")
+addCommandAlias("t", "test")
+addCommandAlias("r", "reload")

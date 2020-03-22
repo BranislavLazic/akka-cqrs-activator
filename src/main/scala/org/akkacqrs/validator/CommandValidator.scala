@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.akkacqrs
+package org.akkacqrs.validator
 
 import java.util.UUID
 

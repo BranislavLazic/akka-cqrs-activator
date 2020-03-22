@@ -85,7 +85,7 @@ object IssueRepository {
 final class IssueRepository(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueEvent])
     extends PersistentActor
     with ActorLogging {
-  import CommandValidator._
+  import org.akkacqrs.validator.CommandValidator._
 
   // Take snapshot after 5 persisted events
   private val snapshotInterval = 5

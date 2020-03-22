@@ -2,7 +2,7 @@
 lib_managed
 project/project
 target
-src/main/resources/web/node_modules/
+src/main/resources/_web/node_modules/
 
 # Worksheets (Eclipse or IntelliJ)
 *.sc
@@ -34,3 +34,5 @@ snapshots
 # Log files
 *.log
 /bin/
+.metals
+.bloop

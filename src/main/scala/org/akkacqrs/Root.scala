@@ -21,6 +21,7 @@ import akka.cluster.pubsub.DistributedPubSub
 import akka.persistence.query.scaladsl.EventsByTagQuery
 import akka.stream.ActorMaterializer
 import org.akkacqrs.service.{ IssueService, IssueServiceImpl }
+import org.akkacqrs.api.HttpServer
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -42,7 +43,7 @@ object Root {
       publishSubscribeMediator: ActorRef
   ) =
     context.actorOf(
-      HttpApi.props(
+      HttpServer.props(
         host,
         port,
         requestTimeout,
@@ -52,7 +53,7 @@ object Root {
         issueService,
         publishSubscribeMediator
       ),
-      HttpApi.Name
+      HttpServer.Name
     )
 
   def props(readJournal: EventsByTagQuery) = Props(new Root(readJournal))

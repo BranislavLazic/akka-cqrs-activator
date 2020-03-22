@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.akkacqrs
+package org.akkacqrs.api
 
 import java.time.LocalDate
 import java.util.UUID
@@ -26,21 +26,20 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
 import akka.testkit.{ TestActor, TestProbe }
 import com.datastax.driver.core.utils.UUIDs
+import org.akkacqrs.IssueRepository
 import org.akkacqrs.service.{ IssueResponse, IssueService }
 import org.mockito.integrations.scalatest.MockitoFixture
 import org.scalatest.{ Matchers, WordSpec }
 
-import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 
-class HttpApiSpec extends WordSpec with Matchers with ScalatestRouteTest with MockitoFixture {
+class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest with MockitoFixture {
 
-  import akka.http.scaladsl.unmarshalling.sse.EventStreamUnmarshalling._
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-  import org.akkacqrs.HttpApi._
-  import org.akkacqrs.IssueRepository._
   import io.circe.generic.auto._
-  import io.circe.syntax._
+  import org.akkacqrs.IssueRepository._
+  import org.akkacqrs.api.IssueRoutes._
 
   implicit val context: ExecutionContextExecutor = system.dispatcher
 

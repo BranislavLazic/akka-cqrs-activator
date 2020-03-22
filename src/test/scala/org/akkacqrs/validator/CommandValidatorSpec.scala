@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-package org.akkacqrs
+package org.akkacqrs.validator
 
 import java.time.LocalDate
 import java.util.UUID
 
 import cats.data.NonEmptyList
 import cats.data.Validated.{ Invalid, Valid }
+import org.akkacqrs.IssueRepository
 import org.akkacqrs.IssueRepository.CreateIssue
 import org.scalatest.{ Matchers, WordSpec }
 
 class CommandValidatorSpec extends WordSpec with Matchers {
-  import CommandValidator._
+  import org.akkacqrs.validator.CommandValidator._
 
   "Command validator" should {
     "return errors if name in CreateIssue is empty" in {

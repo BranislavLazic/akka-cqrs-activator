@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package org.akkacqrs
+package org.akkacqrs.api
 
 import java.util.UUID
 
-import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
+import akka.actor.ActorRef
 import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
-import akka.http.scaladsl.Http
+
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
-import akka.stream.{ ActorMaterializer, OverflowStrategy }
+import akka.stream.OverflowStrategy
 import akka.util.Timeout
 import akka.http.scaladsl.server.Directives._
 
@@ -34,20 +34,19 @@ import akka.pattern._
 import akka.stream.scaladsl.Source
 import cats.data.NonEmptyList
 import com.datastax.driver.core.utils.UUIDs
-import org.akkacqrs.CommandValidator.ValidationError
+import org.akkacqrs.validator.CommandValidator.ValidationError
 import org.akkacqrs.IssueRepository._
 import org.akkacqrs.service.{ IssueResponse, IssueService }
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
+import org.akkacqrs._
 
-object HttpApi {
+object IssueRoutes extends CORSHandler {
 
   final case class CreateIssueRequest(date: String, summary: String, description: String)
   final case class UpdateRequest(summary: String, description: String)
   final case class CloseIssueRequest(id: UUID)
-
-  final val Name = "http-server"
 
   def routes(
       issueRepositoryManager: ActorRef,
@@ -98,7 +97,7 @@ object HttpApi {
           ServerSentEvent(unprocessedIssue.message.asJson.noSpaces, "issue-unprocessed")
       }
 
-    def assets: Route = getFromResourceDirectory("web") ~ pathSingleSlash {
+    def assets: Route = getFromResourceDirectory("") ~ pathSingleSlash {
       get {
         redirect("index.html", StatusCodes.PermanentRedirect)
       }
@@ -181,65 +180,6 @@ object HttpApi {
         }
       }
     }
-    api ~ assets
-  }
-
-  def props(
-      host: String,
-      port: Int,
-      requestTimeout: FiniteDuration,
-      eventBufferSize: Int,
-      heartbeatInterval: FiniteDuration,
-      issueRepositoryManager: ActorRef,
-      issueRead: IssueService,
-      publishSubscribeMediator: ActorRef
-  ) =
-    Props(
-      new HttpApi(
-        host,
-        port,
-        requestTimeout,
-        eventBufferSize,
-        heartbeatInterval: FiniteDuration,
-        issueRepositoryManager,
-        issueRead,
-        publishSubscribeMediator
-      )
-    )
-}
-
-final class HttpApi(
-    host: String,
-    port: Int,
-    requestTimeout: FiniteDuration,
-    eventBufferSize: Int,
-    heartbeatInterval: FiniteDuration,
-    issueRepositoryManager: ActorRef,
-    issueService: IssueService,
-    publishSubscribeMediator: ActorRef
-) extends Actor
-    with ActorLogging {
-  import context.dispatcher
-  import HttpApi._
-  private implicit val materializer: ActorMaterializer = ActorMaterializer()
-
-  Http(context.system)
-    .bindAndHandle(
-      routes(
-        issueRepositoryManager,
-        issueService,
-        publishSubscribeMediator,
-        requestTimeout,
-        eventBufferSize,
-        heartbeatInterval
-      ),
-      host,
-      port
-    )
-    .pipeTo(self)
-
-  override def receive: Receive = {
-    case Http.ServerBinding(socketAddress) =>
-      log.info(s"Server started at: $socketAddress")
+    corsHandler(api ~ assets)
   }
 }
