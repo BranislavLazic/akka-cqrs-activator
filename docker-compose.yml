@@ -4,6 +4,6 @@ services:
   cassandra_event_store:
     image: cassandra:3.11.1
     ports:
-      - "9042:9042"
+      - '9042:9042'
     environment:
-      JVM_OPTS: "-Xms1G -Xmx3G"
+      JVM_OPTS: '-Xms512m -Xmx1G'

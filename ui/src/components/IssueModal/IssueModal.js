@@ -1,45 +1,44 @@
-import React, { useState, useCallback } from 'react';
-import { Button, Modal, Form } from 'antd';
+import React, { useCallback } from 'react';
+import { Modal, Form } from 'antd';
 import { IssueForm } from './IssueForm';
+import { useParams } from 'react-router-dom';
+import { createIssue } from '../IssuePage/issuesApi';
 
-const IssueModal = ({ visible }) => {
-  const [isModalVisible, setModalVisible] = useState(visible);
-  const [confirmLoading, setConfirmLoading] = useState(false);
+const mapValuesToIssue = (date, { summary, description }) => ({
+  date: date,
+  summary: summary,
+  description: description,
+});
+
+const IssueModal = ({
+  visible,
+  handleClose,
+  isSaveButtonLoading,
+  setSaveButtonLoading,
+}) => {
   const [form] = Form.useForm();
-
-  const handleAddIssue = () => {
-    setModalVisible(true);
-  };
-
-  const handleCancel = useCallback(() => {
-    setModalVisible(false);
-  }, [setModalVisible]);
+  const { date } = useParams();
 
   const handleSave = useCallback(() => {
     form
       .validateFields()
       .then(values => {
-        console.log(values);
-        setConfirmLoading(true);
+        setSaveButtonLoading(true);
+        createIssue(mapValuesToIssue(date, values));
         form.resetFields();
-        setTimeout(() => {
-          setModalVisible(false);
-          setConfirmLoading(false);
-        }, 2000);
       })
       .catch(() => {});
-  }, [setConfirmLoading, form, setModalVisible]);
+  }, [form, date, setSaveButtonLoading]);
 
   return (
     <>
-      <Button onClick={handleAddIssue}>Add issue</Button>
       <Modal
         title="Add issue"
         okText="Save"
-        visible={isModalVisible}
+        visible={visible}
         onOk={handleSave}
-        onCancel={handleCancel}
-        confirmLoading={confirmLoading}
+        onCancel={handleClose}
+        confirmLoading={isSaveButtonLoading}
       >
         <IssueForm form={form} />
       </Modal>

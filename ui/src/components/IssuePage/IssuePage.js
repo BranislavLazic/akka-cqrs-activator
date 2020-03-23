@@ -1,13 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Breadcrumb, Card, Col, Row } from 'antd';
+import { Breadcrumb, Card, Col, Row, Button } from 'antd';
 import { CalendarOutlined } from '@ant-design/icons';
-import { fetchIssuesByDate } from './issuesApi';
+import { fetchIssuesByDate, subscribeToIssuesStream } from './issuesApi';
 import { IssueModal } from '../IssueModal';
 
 const IssuePage = () => {
   const { date } = useParams();
   const [issues, setIssues] = useState([]);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [isSaveButtonLoading, setSaveButtonLoading] = useState(false);
+
+  useEffect(() => {
+    if (issues.length) {
+      const issueCreatedEventStream = subscribeToIssuesStream(
+        'issue-created',
+        event => {
+          setIssues([...issues, JSON.parse(event.data)]);
+          setSaveButtonLoading(false);
+          setModalVisible(false);
+        },
+      );
+      return () => {
+        issueCreatedEventStream.close();
+      };
+    }
+  }, [issues]);
 
   useEffect(() => {
     if (date) {
@@ -22,6 +40,10 @@ const IssuePage = () => {
     }
   }, [date]);
 
+  const toggleModal = () => {
+    setModalVisible(!isModalVisible);
+  };
+
   return (
     <div>
       <Breadcrumb>
@@ -34,7 +56,13 @@ const IssuePage = () => {
           <span>{date}</span>
         </Breadcrumb.Item>
       </Breadcrumb>
-      <IssueModal visible={false} />
+      <Button onClick={toggleModal}>Add issue</Button>
+      <IssueModal
+        visible={isModalVisible}
+        handleClose={toggleModal}
+        isSaveButtonLoading={isSaveButtonLoading}
+        setSaveButtonLoading={setSaveButtonLoading}
+      />
       {issues.map(({ id, summary, description }) => (
         <Row key={id} gutter={[16, 16]}>
           <Col span={12}>

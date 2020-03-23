@@ -25,27 +25,12 @@ lazy val `akka-cqrs-activator` =
           library.scalaTest               % Test
         )
     )
-lazy val frontendTask      = taskKey[Unit]("execute frontend task")
-lazy val frontendOutputDir = settingKey[File]("output directory for target files")
-lazy val frontendBuildDir  = settingKey[File]("output directory for build files")
-
-frontendBuildDir in Global := baseDirectory.value / "ui" / "build"
-frontendOutputDir in Global := baseDirectory.value / "ui" / "target" / s"scala-${scalaBinaryVersion.value}" / "classes"
-
-frontendTask in Global := {
-  Process("yarn build", new File("./ui")).!!
-  IO.copyDirectory(frontendBuildDir.value, frontendOutputDir.value)
-}
 
 lazy val `ui` =
   project
     .in(file("./ui"))
     .settings(settings)
     .settings(
-      compile in Compile := {
-        frontendTask.value
-        (compile in Compile).value
-      },
       resourceDirectory in Compile := baseDirectory.value / "build"
     )
 
