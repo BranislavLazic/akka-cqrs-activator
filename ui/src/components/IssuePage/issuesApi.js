@@ -1,16 +1,18 @@
 import axios from 'axios';
-const baseUrl = 'http://localhost:8000';
+export const baseUrl = 'http://localhost:8000/issues';
 
 export const fetchIssuesByDate = async date => {
-  return await axios.get(baseUrl + `/issues/${date}`);
+  return await axios.get(`${baseUrl}/${date}`);
 };
 
 export const createIssue = async issue => {
-  return await axios.post(baseUrl + '/issues', issue);
+  return await axios.post(baseUrl, issue);
 };
 
-export const subscribeToIssuesStream = (eventType, callback) => {
-  const eventSource = new EventSource(baseUrl + '/issues/event-stream');
-  eventSource.addEventListener(eventType, callback, false);
-  return eventSource;
+export const closeIssue = async (date, id) => {
+  await axios.put(`${baseUrl}/${date}/${id}`);
+};
+
+export const deleteIssue = async (date, id) => {
+  await axios.delete(`${baseUrl}/${date}/${id}`);
 };

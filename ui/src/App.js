@@ -4,8 +4,15 @@ import { createBrowserHistory } from 'history';
 
 import { Calendar } from './components/Calendar';
 import { IssuePage } from './components/IssuePage';
-
+import { SSEProvider } from 'react-hooks-sse';
+import { baseUrl } from './components/IssuePage/issuesApi';
 const history = createBrowserHistory();
+
+const IssuePageWithProvider = () => (
+  <SSEProvider endpoint={`${baseUrl}/event-stream`}>
+    <IssuePage />
+  </SSEProvider>
+);
 
 const App = () => {
   return (
@@ -14,7 +21,7 @@ const App = () => {
         <Route path="/" exact>
           <Calendar />
         </Route>
-        <Route path={'/issues/:date'} component={IssuePage} />
+        <Route path={'/issues/:date'} component={IssuePageWithProvider} />
       </Switch>
     </Router>
   );

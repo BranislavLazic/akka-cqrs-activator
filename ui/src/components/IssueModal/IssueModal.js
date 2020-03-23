@@ -11,6 +11,7 @@ const mapValuesToIssue = (date, { summary, description }) => ({
 });
 
 const IssueModal = ({
+  id,
   visible,
   handleClose,
   isSaveButtonLoading,
@@ -33,7 +34,7 @@ const IssueModal = ({
   return (
     <>
       <Modal
-        title="Add issue"
+        title={id ? 'Edit issue' : 'Add issue'}
         okText="Save"
         visible={visible}
         onOk={handleSave}
