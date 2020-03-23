@@ -8,12 +8,6 @@ import { SSEProvider } from 'react-hooks-sse';
 import { baseUrl } from './components/IssuePage/issuesApi';
 const history = createBrowserHistory();
 
-const IssuePageWithProvider = () => (
-  <SSEProvider endpoint={`${baseUrl}/event-stream`}>
-    <IssuePage />
-  </SSEProvider>
-);
-
 const App = () => {
   return (
     <Router history={history}>
@@ -21,7 +15,11 @@ const App = () => {
         <Route path="/" exact>
           <Calendar />
         </Route>
-        <Route path={'/issues/:date'} component={IssuePageWithProvider} />
+        <Route path={'/issues/:date'}>
+          <SSEProvider endpoint={`${baseUrl}/event-stream`}>
+            <IssuePage />
+          </SSEProvider>
+        </Route>
       </Switch>
     </Router>
   );
