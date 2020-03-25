@@ -21,8 +21,8 @@ import java.util.UUID
 import cats.data._
 import cats.implicits._
 
-object CommandValidator {
-  import org.akkacqrs.IssueRepository._
+object IssueCommandsValidator {
+  import org.akkacqrs.write.IssueRepository._
   case class ValidationError(code: String, message: String)
 
   private def validateSummary(summary: String): ValidatedNel[ValidationError, String] =

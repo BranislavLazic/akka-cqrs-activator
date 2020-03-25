@@ -1,5 +1,5 @@
 import axios from 'axios';
-export const baseUrl = 'http://localhost:8000/issues';
+export const baseUrl = 'http://localhost:8000/api/issues';
 
 export const fetchIssuesByDate = async date => {
   return await axios.get(`${baseUrl}/${date}`);

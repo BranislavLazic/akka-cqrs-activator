@@ -26,8 +26,8 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
 import akka.testkit.{ TestActor, TestProbe }
 import com.datastax.driver.core.utils.UUIDs
-import org.akkacqrs.IssueRepository
-import org.akkacqrs.service.{ IssueResponse, IssueService }
+import org.akkacqrs.read.{ IssueResponse, IssueService }
+import org.akkacqrs.write.IssueRepository
 import org.mockito.integrations.scalatest.MockitoFixture
 import org.scalatest.{ Matchers, WordSpec }
 
@@ -38,7 +38,7 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
-  import org.akkacqrs.IssueRepository._
+  import org.akkacqrs.write.IssueRepository._
   import org.akkacqrs.api.IssueRoutes._
 
   implicit val context: ExecutionContextExecutor = system.dispatcher

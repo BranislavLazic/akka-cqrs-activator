@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-package org.akkacqrs
+package org.akkacqrs.write
 
+import java.io.{ Serializable => JavaSerializable }
 import java.time.LocalDate
 import java.util.UUID
+
 import akka.actor.{ ActorLogging, Props }
-import org.akkacqrs.IssueRepository._
-import java.io.{ Serializable => JavaSerializable }
+import org.akkacqrs.write.IssueRepository._
 import akka.persistence.{ PersistentActor, RecoveryCompleted, SnapshotOffer }
 import cats.data.Validated.{ Invalid, Valid }
+
 import scala.reflect._
 /*
 Lifecycle of an issue:
@@ -85,7 +87,7 @@ object IssueRepository {
 final class IssueRepository(id: UUID, date: LocalDate)(implicit val domainEventClassTag: ClassTag[IssueEvent])
     extends PersistentActor
     with ActorLogging {
-  import org.akkacqrs.validator.CommandValidator._
+  import org.akkacqrs.validator.IssueCommandsValidator._
 
   // Take snapshot after 5 persisted events
   private val snapshotInterval = 5

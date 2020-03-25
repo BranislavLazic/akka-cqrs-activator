@@ -31,7 +31,8 @@ lazy val `ui` =
     .in(file("./ui"))
     .settings(settings)
     .settings(
-      resourceDirectory in Compile := baseDirectory.value / "build"
+      resourceDirectory in Compile := baseDirectory.value / "build",
+      sourceDirectory in Compile := baseDirectory.value / "src"
     )
 
 // *****************************************************************************

@@ -16,31 +16,34 @@
 
 package org.akkacqrs.api
 
+import java.io.File
 import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
-
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{ ContentType, HttpEntity, StatusCodes }
 import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.OverflowStrategy
 import akka.util.Timeout
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.model.HttpCharsets.`UTF-8`
+import akka.http.scaladsl.model.MediaTypes.`text/html`
 
 import scala.concurrent.duration._
 import akka.pattern._
 import akka.stream.scaladsl.Source
 import cats.data.NonEmptyList
 import com.datastax.driver.core.utils.UUIDs
-import org.akkacqrs.validator.CommandValidator.ValidationError
-import org.akkacqrs.IssueRepository._
-import org.akkacqrs.service.{ IssueResponse, IssueService }
+import org.akkacqrs.validator.IssueCommandsValidator.ValidationError
+import org.akkacqrs.write.IssueRepository._
+import org.akkacqrs.read.{ IssueResponse, IssueService }
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import org.akkacqrs._
+import org.akkacqrs.write.IssueRepository
 
 object IssueRoutes extends CORSHandler {
 
@@ -97,11 +100,12 @@ object IssueRoutes extends CORSHandler {
           ServerSentEvent(unprocessedIssue.message.asJson.noSpaces, "issue-unprocessed")
       }
 
-    def assets: Route = getFromResourceDirectory("") ~ pathSingleSlash {
-      get {
-        redirect("index.html", StatusCodes.PermanentRedirect)
+    def assets: Route =
+      getFromResourceDirectory("") ~ pathPrefix("") {
+        get {
+          getFromResource("index.html", ContentType(`text/html`, `UTF-8`))
+        }
       }
-    }
 
     def api: Route = pathPrefix("issues") {
       post {
@@ -180,6 +184,6 @@ object IssueRoutes extends CORSHandler {
         }
       }
     }
-    corsHandler(api ~ assets)
+    pathPrefix("api") { api } ~ assets
   }
 }

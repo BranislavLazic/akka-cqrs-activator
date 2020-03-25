@@ -21,12 +21,12 @@ import java.util.UUID
 
 import cats.data.NonEmptyList
 import cats.data.Validated.{ Invalid, Valid }
-import org.akkacqrs.IssueRepository
-import org.akkacqrs.IssueRepository.CreateIssue
+import org.akkacqrs.write.IssueRepository.CreateIssue
+import org.akkacqrs.write.IssueRepository
 import org.scalatest.{ Matchers, WordSpec }
 
-class CommandValidatorSpec extends WordSpec with Matchers {
-  import org.akkacqrs.validator.CommandValidator._
+class IssueCommandsValidatorSpec extends WordSpec with Matchers {
+  import org.akkacqrs.validator.IssueCommandsValidator._
 
   "Command validator" should {
     "return errors if name in CreateIssue is empty" in {

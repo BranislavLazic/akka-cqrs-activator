@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.akkacqrs.service
+package org.akkacqrs.read
 
 import java.time.LocalDate
 import java.util.UUID
@@ -27,30 +27,32 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.datastax.driver.core.utils.UUIDs
 import com.datastax.driver.core.{ ResultSet, Session }
-import org.akkacqrs.IssueRepository._
+import org.akkacqrs.write.IssueRepository._
 import org.akkacqrs.{ Settings, className }
 import org.akkacqrs._
+import org.akkacqrs.write.IssueRepository
+
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 
 /**
   * Subscribes to the IssueEvent's from mediator and manages issues in data store.
   */
-final class IssueServiceImpl(session: Session, publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery)(
+class IssueService(session: Session, publishSubscribeMediator: ActorRef, readJournal: EventsByTagQuery)(
     implicit materializer: ActorMaterializer,
     executionContext: ExecutionContext
-) extends IssueService {
+) {
   import Settings.CassandraDb._
 
   subscribeToEvents(publishSubscribeMediator, readJournal)
 
-  override def getIssueByDateAndId(date: LocalDate, id: UUID): Future[Vector[IssueResponse]] =
+  def getIssueByDateAndId(date: LocalDate, id: UUID): Future[Vector[IssueResponse]] =
     session
       .executeAsync(s"SELECT * FROM $keyspace.issues WHERE date_updated = ? AND id = ?;", date.toString, id)
       .toFuture
       .map(resultSetToIssueResponse)
 
-  override def getIssueByDate(date: LocalDate): Future[Vector[IssueResponse]] =
+  def getIssueByDate(date: LocalDate): Future[Vector[IssueResponse]] =
     session
       .executeAsync(s"SELECT * FROM $keyspace.issues WHERE date_updated = ?;", date.toString)
       .toFuture

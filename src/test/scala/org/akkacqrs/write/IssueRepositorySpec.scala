@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-package org.akkacqrs
+package org.akkacqrs.write
 
 import java.time.LocalDate
 import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.testkit.TestProbe
+import org.akkacqrs.BaseSpec
 import org.scalatest.{ Matchers, WordSpec }
 
 class IssueRepositorySpec extends WordSpec with Matchers with BaseSpec {
 
-  import org.akkacqrs.IssueRepository._
+  import org.akkacqrs.write.IssueRepository._
 
   "When issue is not created then IssueRepository actor" should {
     val sender                       = TestProbe()

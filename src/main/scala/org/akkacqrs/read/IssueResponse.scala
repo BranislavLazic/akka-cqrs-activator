@@ -14,14 +14,7 @@
  * limitations under the License.
  */
 
-package org.akkacqrs.service
-import java.time.LocalDate
+package org.akkacqrs.read
 import java.util.UUID
 
-import scala.concurrent.Future
-
-trait IssueService {
-  def getIssueByDateAndId(date: LocalDate, id: UUID): Future[Vector[IssueResponse]]
-
-  def getIssueByDate(date: LocalDate): Future[Vector[IssueResponse]]
-}
+final case class IssueResponse(id: UUID, date: String, summary: String, description: String, status: String)

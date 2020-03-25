@@ -34,7 +34,7 @@ object IssueEventSerializer {
 }
 
 final class IssueEventSerializer extends SerializerWithStringManifest {
-  import org.akkacqrs.IssueRepository._
+  import org.akkacqrs.write.IssueRepository._
   import IssueEventSerializer._
 
   override def identifier: Int = getClass.getName.hashCode

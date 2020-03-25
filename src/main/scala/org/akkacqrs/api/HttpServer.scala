@@ -20,7 +20,7 @@ import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 import akka.http.scaladsl.Http
 import akka.pattern._
 import akka.stream.ActorMaterializer
-import org.akkacqrs.service.IssueService
+import org.akkacqrs.read.IssueService
 
 import scala.concurrent.duration._
 

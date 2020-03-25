@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.akkacqrs
+package org.akkacqrs.write
 
 import java.time.LocalDate
 import java.util.UUID
