@@ -33,6 +33,9 @@ import org.scalatest.{ Matchers, WordSpec }
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContextExecutor, Future }
+import akka.http.scaladsl.model.ContentType
+import akka.http.scaladsl.model.HttpCharsets.`UTF-8`
+import akka.http.scaladsl.model.MediaTypes.`text/html`
 
 class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest with MockitoFixture {
 
@@ -82,8 +85,8 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
         eventBufferSize,
         heartbeatInterval
       ) ~> check {
-        status shouldBe StatusCodes.PermanentRedirect
-        header[Location] shouldBe Some(Location(Uri("index.html")))
+        status shouldBe StatusCodes.OK
+        contentType shouldBe ContentType(`text/html`, `UTF-8`)
       }
     }
 
@@ -99,7 +102,7 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
         })
       )
 
-      Post("/issues", CreateIssueRequest(date.toString, summary, description)) ~>
+      Post("/api/issues", CreateIssueRequest(date.toString, summary, description)) ~>
       routes(issueRepositoryManager.ref, issueRead, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
         status shouldBe StatusCodes.Created
       }
@@ -117,7 +120,7 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
         })
       )
 
-      Put(s"/issues/${date.toString}/${id.toString}", UpdateRequest(summary, description)) ~>
+      Put(s"/api/issues/${date.toString}/${id.toString}", UpdateRequest(summary, description)) ~>
       routes(issueRepositoryManager.ref, issueRead, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
         status shouldBe StatusCodes.OK
       }
@@ -135,7 +138,7 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
         })
       )
 
-      Put(s"/issues/${date.toString}/${id.toString}") ~>
+      Put(s"/api/issues/${date.toString}/${id.toString}") ~>
       routes(issueRepositoryManager.ref, issueRead, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
         status shouldBe StatusCodes.OK
         responseAs[String] shouldBe "Issue has been closed."
@@ -154,7 +157,7 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
         })
       )
 
-      Delete(s"/issues/${date.toString}/${id.toString}") ~>
+      Delete(s"/api/issues/${date.toString}/${id.toString}") ~>
       routes(issueRepositoryManager.ref, issueRead, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
         status shouldBe StatusCodes.OK
         responseAs[String] shouldBe "Issue has been deleted."
