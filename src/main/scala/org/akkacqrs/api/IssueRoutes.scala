@@ -17,6 +17,7 @@
 package org.akkacqrs.api
 
 import java.io.File
+import java.time.LocalDate
 import java.util.UUID
 
 import akka.actor.ActorRef
@@ -73,9 +74,19 @@ object IssueRoutes extends CORSHandler {
       * @tparam A the issue  event type
       * @return the source of server sent events
       */
-    def fromEventStream[A: ClassTag](toServerSentEvent: A => ServerSentEvent) =
+    def fromEventStream[A: ClassTag](
+        toServerSentEvent: A => ServerSentEvent,
+        selectedDate: LocalDate
+    ): Source[ServerSentEvent, Unit] =
       Source
         .actorRef[A](eventBufferSize, OverflowStrategy.dropHead)
+        .filter {
+          case IssueCreated(_, _, _, date, _) => date.isEqual(selectedDate)
+          case IssueUpdated(_, _, _, date)    => date.isEqual(selectedDate)
+          case IssueClosed(_, date)           => date.isEqual(selectedDate)
+          case IssueDeleted(_, date)          => date.isEqual(selectedDate)
+          case _                              => false
+        }
         .map(toServerSentEvent)
         .mapMaterializedValue(publishSubscribeMediator ! Subscribe(className[A], _))
         .keepAlive(heartbeatInterval, () => ServerSentEvent.heartbeat)
@@ -98,13 +109,6 @@ object IssueRoutes extends CORSHandler {
           ServerSentEvent(issueDeleted.asJson.noSpaces, "issue-deleted")
         case unprocessedIssue: IssueUnprocessed =>
           ServerSentEvent(unprocessedIssue.message.asJson.noSpaces, "issue-unprocessed")
-      }
-
-    def assets: Route =
-      getFromResourceDirectory("") ~ pathPrefix("") {
-        get {
-          getFromResource("index.html", ContentType(`text/html`, `UTF-8`))
-        }
       }
 
     def api: Route = pathPrefix("issues") {
@@ -134,9 +138,9 @@ object IssueRoutes extends CORSHandler {
         }
       } ~
       // Server sent events
-      path("event-stream") {
+      path("event-stream" / Segment) { date =>
         complete {
-          fromEventStream(eventToServerSentEvent)
+          fromEventStream(eventToServerSentEvent, date.toLocalDate)
         }
       } ~
       // Requests for issues by specific date
@@ -184,6 +188,14 @@ object IssueRoutes extends CORSHandler {
         }
       }
     }
-    pathPrefix("api") { api } ~ assets
+
+    def assets: Route =
+      getFromResourceDirectory("") ~ pathPrefix("") {
+        get {
+          getFromResource("index.html", ContentType(`text/html`, `UTF-8`))
+        }
+      }
+
+    corsHandler { pathPrefix("api") { api } ~ assets }
   }
 }

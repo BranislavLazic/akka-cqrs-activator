@@ -4,7 +4,6 @@ import { createBrowserHistory } from 'history';
 
 import { Calendar } from './components/Calendar';
 import { IssuePage } from './components/IssuePage';
-import { SSEProvider } from 'react-hooks-sse';
 import { baseUrl } from './components/IssuePage/issuesApi';
 const history = createBrowserHistory();
 
@@ -15,11 +14,16 @@ const App = () => {
         <Route path="/" exact>
           <Calendar />
         </Route>
-        <Route path={'/issues/:date'}>
-          <SSEProvider endpoint={`${baseUrl}/event-stream`}>
-            <IssuePage />
-          </SSEProvider>
-        </Route>
+        <Route
+          path={'/issues/:date'}
+          render={({ match }) => (
+            <IssuePage
+              eventSource={
+                new EventSource(`${baseUrl}/event-stream/${match.params.date}`)
+              }
+            />
+          )}
+        ></Route>
       </Switch>
     </Router>
   );

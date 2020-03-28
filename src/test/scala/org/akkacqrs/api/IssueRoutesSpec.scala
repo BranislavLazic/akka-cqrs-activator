@@ -20,8 +20,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 import akka.actor.ActorRef
-import akka.http.scaladsl.model.headers.Location
-import akka.http.scaladsl.model.{ StatusCodes, Uri }
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
 import akka.testkit.{ TestActor, TestProbe }
@@ -72,7 +71,7 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
   )
 
   "HttpApi" should {
-    "result in status code PermanentRedirect to index.html upon GET /" in {
+    "result in status OK upon GET /" in {
       val pubSubMediator                           = TestProbe()
       val issueRepositoryManager                   = TestProbe()
       implicit val materializer: ActorMaterializer = ActorMaterializer()
