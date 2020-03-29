@@ -25,6 +25,25 @@ lazy val `akka-cqrs-activator` =
           library.scalaTest               % Test
         )
     )
+lazy val frontendTask           = taskKey[Unit]("execute frontend task")
+lazy val frontendNodeModulesDir = settingKey[File]("node_modules directory")
+lazy val frontendOutputDir      = settingKey[File]("output directory for target files")
+lazy val frontendBuildDir       = settingKey[File]("output directory for build files")
+
+frontendNodeModulesDir in Global := baseDirectory.value / "ui" / "node_modules"
+frontendBuildDir in Global := baseDirectory.value / "ui" / "build"
+frontendOutputDir in Global := baseDirectory.value / "ui" / "target" / s"scala-${scalaBinaryVersion.value}" / "classes"
+
+commands in Global += Command.command("yarn") { state =>
+  if (!frontendNodeModulesDir.value.exists()) {
+    Keys.sLog.value.info("Node modules not installed. Installing ...")
+    Process("yarn", new File("./ui")).!!
+  }
+  Keys.sLog.value.info("Building frontend app ...")
+  Process("yarn build", new File("./ui")).!!
+  IO.copyDirectory(frontendBuildDir.value, frontendOutputDir.value)
+  state
+}
 
 lazy val `ui` =
   project

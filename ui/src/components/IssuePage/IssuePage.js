@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Breadcrumb, Col, Row, Button } from 'antd';
 import { CalendarOutlined } from '@ant-design/icons';
@@ -23,17 +23,39 @@ const IssuePage = ({ eventSource }) => {
   useEffect(() => {
     eventSource.addEventListener(
       'issue-created',
-      event => {
-        setIssues(i => [...i, JSON.parse(event.data)]);
+      ({ data }) => {
+        setIssues(currentIssues => [...currentIssues, JSON.parse(data)]);
         setSaveButtonLoading(false);
         setModalVisible(false);
+      },
+      false,
+    );
+    eventSource.addEventListener(
+      'issue-deleted',
+      ({ data }) => {
+        setIssues(currentIssues =>
+          currentIssues.filter(issue => JSON.parse(data).id !== issue.id),
+        );
+      },
+      false,
+    );
+    eventSource.addEventListener(
+      'issue-closed',
+      ({ data }) => {
+        setIssues(currentIssues =>
+          currentIssues.map(issue =>
+            issue.id === JSON.parse(data).id
+              ? { ...issue, status: 'CLOSED' }
+              : issue,
+          ),
+        );
       },
       false,
     );
     return () => {
       eventSource.close();
     };
-  }, [date]);
+  }, [date, eventSource, setIssues]);
 
   useEffect(() => {
     if (date) {
