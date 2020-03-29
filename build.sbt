@@ -10,6 +10,14 @@ lazy val `akka-cqrs-activator` =
     .dependsOn(`ui`)
     .settings(settings)
     .settings(
+      assemblyMergeStrategy in assembly := {
+        case x if x.contains("io.netty.versions.properties") => MergeStrategy.first
+        case x =>
+          val oldStrategy = (assemblyMergeStrategy in assembly).value
+          oldStrategy(x)
+      }
+    )
+    .settings(
       libraryDependencies ++= Seq(
           library.akkaHttp,
           library.akkaHttpCirce,
@@ -130,3 +138,5 @@ lazy val scalafmtSettings =
 addCommandAlias("c", "compile")
 addCommandAlias("t", "test")
 addCommandAlias("r", "reload")
+// Create executable JAR
+addCommandAlias("a", ";yarn;assembly")

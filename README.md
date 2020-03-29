@@ -12,10 +12,11 @@
 #### Up and run:
 
 - In root directory execute command: `docker-compose up -d` to start Cassandra
-- Then execute command: `sbt` to enter `sbt` console and execute `;yarn;reStart` command 
-(`yarn` command installs `node_modules` and builds the frontend) to start server 
-(to stop server, type `reStop` and hit enter within the same `sbt` session).
+- Then execute command: `sbt` to enter `sbt` console and execute `;yarn;reStart` command
+  (`yarn` command installs `node_modules` and builds the frontend) to start server
+  (to stop server, type `reStop` and hit enter within the same `sbt` session).
   You should be able to access application at: http://localhost:8000 .
+- Use `sbt a` to build executable JAR (`/target/scala-2.12`)
 
 ![alt text](images/issue-tracker.gif)
 

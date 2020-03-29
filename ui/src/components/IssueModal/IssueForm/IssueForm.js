@@ -18,7 +18,10 @@ const IssueForm = ({ form }) => {
       <Form.Item
         label="Summary"
         name="summary"
-        rules={[{ required: true, message: 'Enter summary' }]}
+        rules={[
+          { required: true, message: 'Enter summary' },
+          { min: 2, message: 'Enter at least two characters' },
+        ]}
       >
         <Input />
       </Form.Item>
