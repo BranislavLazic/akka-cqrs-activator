@@ -70,26 +70,45 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
     )
   )
 
+  private def allRoutes(issueRepositoryManagerRef: ActorRef, pubSubMediatorRef: ActorRef) = routes(
+    issueRepositoryManagerRef,
+    issueRead,
+    pubSubMediatorRef,
+    timeout,
+    eventBufferSize,
+    heartbeatInterval
+  )
+
   "HttpApi" should {
     "result in status OK upon GET /" in {
       val pubSubMediator                           = TestProbe()
       val issueRepositoryManager                   = TestProbe()
       implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-      Get("/") ~> routes(
+      Get("/") ~> allRoutes(
         issueRepositoryManager.ref,
-        issueRead,
-        pubSubMediator.ref,
-        timeout,
-        eventBufferSize,
-        heartbeatInterval
+        pubSubMediator.ref
       ) ~> check {
         status shouldBe StatusCodes.OK
         contentType shouldBe ContentType(`text/html`, `UTF-8`)
       }
     }
 
-    "result in status code Created upon sending POST /issues" in {
+    "result in status OK upon GET /any-url-which-doesnt-start-with-api" in {
+      val pubSubMediator                           = TestProbe()
+      val issueRepositoryManager                   = TestProbe()
+      implicit val materializer: ActorMaterializer = ActorMaterializer()
+
+      Get("/any-url-which-doesnt-start-with-api") ~> allRoutes(
+        issueRepositoryManager.ref,
+        pubSubMediator.ref
+      ) ~> check {
+        status shouldBe StatusCodes.OK
+        contentType shouldBe ContentType(`text/html`, `UTF-8`)
+      }
+    }
+
+    "result in status code Created upon sending POST /api/issues" in {
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
@@ -102,12 +121,15 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
       )
 
       Post("/api/issues", CreateIssueRequest(date.toString, summary, description)) ~>
-      routes(issueRepositoryManager.ref, issueRead, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
+      allRoutes(
+        issueRepositoryManager.ref,
+        pubSubMediator.ref
+      ) ~> check {
         status shouldBe StatusCodes.Created
       }
     }
 
-    s"result in status code OK upon sending PUT /issues/${date.toString}/${id.toString} when updating an issue" in {
+    s"result in status code OK upon sending PUT /api/issues/${date.toString}/${id.toString} when updating an issue" in {
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
@@ -120,12 +142,15 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
       )
 
       Put(s"/api/issues/${date.toString}/${id.toString}", UpdateRequest(summary, description)) ~>
-      routes(issueRepositoryManager.ref, issueRead, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
+      allRoutes(
+        issueRepositoryManager.ref,
+        pubSubMediator.ref
+      ) ~> check {
         status shouldBe StatusCodes.OK
       }
     }
 
-    s"result in status code OK and message upon sending PUT /issues/${date.toString}/${id.toString} when closing an issue" in {
+    s"result in status code OK and message upon sending PUT /api/issues/${date.toString}/${id.toString} when closing an issue" in {
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
@@ -138,13 +163,16 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
       )
 
       Put(s"/api/issues/${date.toString}/${id.toString}") ~>
-      routes(issueRepositoryManager.ref, issueRead, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
+      allRoutes(
+        issueRepositoryManager.ref,
+        pubSubMediator.ref
+      ) ~> check {
         status shouldBe StatusCodes.OK
         responseAs[String] shouldBe "Issue has been closed."
       }
     }
 
-    s"result in status code OK and message upon sending DELETE /issues/${date.toString}/${id.toString}" in {
+    s"result in status code OK and message upon sending DELETE /api/issues/${date.toString}/${id.toString}" in {
       val pubSubMediator         = TestProbe()
       val issueRepositoryManager = TestProbe()
 
@@ -157,7 +185,10 @@ class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest wit
       )
 
       Delete(s"/api/issues/${date.toString}/${id.toString}") ~>
-      routes(issueRepositoryManager.ref, issueRead, pubSubMediator.ref, timeout, eventBufferSize, heartbeatInterval) ~> check {
+      allRoutes(
+        issueRepositoryManager.ref,
+        pubSubMediator.ref
+      ) ~> check {
         status shouldBe StatusCodes.OK
         responseAs[String] shouldBe "Issue has been deleted."
       }
