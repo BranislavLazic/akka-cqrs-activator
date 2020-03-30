@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { Modal, Form } from 'antd';
 import { IssueForm } from './IssueForm';
 import { useParams } from 'react-router-dom';
-import { createIssue } from '../IssuePage/issuesApi';
+import { createIssue, updateIssue } from '../IssuePage/issuesApi';
 
 const mapValuesToIssue = (date, { summary, description }) => ({
   date: date,
@@ -37,6 +37,7 @@ const IssueModal = ({
       .then(values => {
         setSaveButtonLoading(true);
         if (issue?.id) {
+          updateIssue({ id: issue.id, ...mapValuesToIssue(date, values) });
         } else {
           createIssue(mapValuesToIssue(date, values));
         }

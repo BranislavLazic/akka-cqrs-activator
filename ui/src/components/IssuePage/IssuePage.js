@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Breadcrumb, Col, Row, Button } from 'antd';
-import { CalendarOutlined } from '@ant-design/icons';
+import { useParams } from 'react-router-dom';
+import { Col, Row, Button } from 'antd';
 import { fetchIssuesByDate, closeIssue, deleteIssue } from './issuesApi';
 import { IssueModal } from '../IssueModal';
 import { IssueTicket } from './IssueTicket';
+import styles from './IssuePage.module.css';
+import { PlusOutlined } from '@ant-design/icons';
+import BreadcrumbNav from './BreadcrumbNav/BreadcrumbNav';
 
 const IssuePage = ({ eventSource }) => {
   const { date } = useParams();
@@ -25,6 +27,26 @@ const IssuePage = ({ eventSource }) => {
       'issue-created',
       ({ data }) => {
         setIssues(currentIssues => [...currentIssues, JSON.parse(data)]);
+        setSaveButtonLoading(false);
+        setModalVisible(false);
+      },
+      false,
+    );
+    eventSource.addEventListener(
+      'issue-updated',
+      ({ data }) => {
+        setIssues(currentIssues =>
+          currentIssues.map(issue => {
+            const { id, summary, description } = JSON.parse(data);
+            return issue.id === id
+              ? {
+                  ...issue,
+                  summary: summary,
+                  description: description,
+                }
+              : issue;
+          }),
+        );
         setSaveButtonLoading(false);
         setModalVisible(false);
       },
@@ -88,18 +110,11 @@ const IssuePage = ({ eventSource }) => {
   };
 
   return (
-    <>
-      <Breadcrumb>
-        <Breadcrumb.Item key="home">
-          <Link to="/">
-            <CalendarOutlined /> <span>Calendar</span>
-          </Link>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
-          <span>{date}</span>
-        </Breadcrumb.Item>
-      </Breadcrumb>
-      <Button onClick={toggleModal}>Add issue</Button>
+    <div className={styles.container}>
+      <BreadcrumbNav date={date} className={styles.breadcrumbNav} />
+      <Button icon={<PlusOutlined />} type="primary" onClick={toggleModal}>
+        Add an issue
+      </Button>
       <IssueModal
         issue={selectedIssue}
         visible={isModalVisible}
@@ -108,7 +123,11 @@ const IssuePage = ({ eventSource }) => {
         setSaveButtonLoading={setSaveButtonLoading}
       />
       {issues.map((issue, idx) => (
-        <Row key={`${idx}-${issue.id}`} gutter={[16, 16]}>
+        <Row
+          className={styles.ticketRow}
+          key={`${idx}-${issue.id}`}
+          gutter={[16, 16]}
+        >
           <Col span={12}>
             <IssueTicket
               issue={issue}
@@ -119,7 +138,7 @@ const IssuePage = ({ eventSource }) => {
           </Col>
         </Row>
       ))}
-    </>
+    </div>
   );
 };
 

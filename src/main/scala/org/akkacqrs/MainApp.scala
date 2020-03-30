@@ -56,5 +56,8 @@ object MainApp {
       ),
       HttpServer.Name
     )
+    sys.addShutdownHook {
+      CassandraConnector.closeConnection(session)
+    }
   }
 }

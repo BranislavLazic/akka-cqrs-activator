@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button } from 'antd';
+import { EditOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
+import styles from './IssueTicket.module.css';
 
 const IssueTicket = ({ issue, handleEdit, handleClose, handleDelete }) => {
   const { id, summary, description, status } = issue;
@@ -8,6 +10,7 @@ const IssueTicket = ({ issue, handleEdit, handleClose, handleDelete }) => {
 
   useEffect(() => {
     setCloseButtonLoading(false);
+    console.log(issue);
   }, [issue]);
 
   const handleOnClose = () => {
@@ -23,19 +26,35 @@ const IssueTicket = ({ issue, handleEdit, handleClose, handleDelete }) => {
   return (
     <Card title={summary}>
       <p>{description}</p>
+
       {status === 'OPENED' && (
         <>
           {status !== 'CLOSED' && (
-            <Button type="primary" onClick={() => handleEdit(issue)}>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(issue)}
+            >
               Edit
             </Button>
           )}
-          <Button loading={isCloseButtonLoading} onClick={handleOnClose}>
+          <Button
+            className={styles.ticketButton}
+            icon={<CloseOutlined />}
+            loading={isCloseButtonLoading}
+            onClick={handleOnClose}
+          >
             Close
           </Button>
         </>
       )}
-      <Button loading={isDeleteButtonLoading} onClick={handleOnDelete}>
+      <Button
+        type="danger"
+        className={styles.ticketButton}
+        icon={<DeleteOutlined />}
+        loading={isDeleteButtonLoading}
+        onClick={handleOnDelete}
+      >
         Delete
       </Button>
     </Card>
