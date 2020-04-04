@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { Modal, Form } from 'antd';
 import { IssueForm } from './IssueForm';
 import { useParams } from 'react-router-dom';
-import { createIssue, updateIssue } from '../IssuePage/issuesApi';
+import { createIssue, updateIssue } from '../api/issuesApi';
 
 const mapValuesToIssue = (date, { summary, description }) => ({
   date: date,
@@ -47,7 +47,6 @@ const IssueModal = ({
   }, [form, date, setSaveButtonLoading, issue]);
 
   return (
-    <>
       <Modal
         getContainer={false}
         title={issue?.id ? 'Edit issue' : 'Add issue'}
@@ -59,7 +58,6 @@ const IssueModal = ({
       >
         <IssueForm form={form} />
       </Modal>
-    </>
   );
 };
 

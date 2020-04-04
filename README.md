@@ -7,7 +7,7 @@
 - Scala 2.12
 - docker-compose version 1.8
 - SBT
-- NodeJS
+- Node
 
 #### Up and run:
 
@@ -33,7 +33,7 @@ On the write side, Akka Persistent FSM actor is being used to store current stat
 In our case - IssueRepository.
 IssueRepositoryManager is being used to manage creation of IssueRepository actors.
 Each time when new issue is being created, new IssueRepository actor is being created with unique id. Therefore,
-one actor per issue. The unique id is composed from time UUID and date (which is date of creation).
+one actor per issue. The unique id is composed of time UUID and date (which is date of creation).
 If the actor is not existing in the context of IssueRepositoryManager, then the actor is being created as a new one, or recovered
 by provided id. In case of recovery, events will be replayed and actor will be recovered to its
 latest state.
@@ -49,8 +49,8 @@ Akka Persistence Query to subscribe to events by a common tag.
 
 #### Read side
 
-On the read side, IssueVew actor is being used to poll Cassandra event store and to subscribe on stream of
-events. Events are sent to IssueVew itself, their data is being processed, published to the DistributedPubSub mediator
+On the read side, IssueService is being used to poll Cassandra event store and to subscribe on a stream of
+events. Events are being sent to IssueService itself, their data are being processed, published to the DistributedPubSub mediator
 and then used in execution of CQL statements against Cassandra read side data store.
 Other tasks of IssueVew actor are to query Cassandra database and to create read side keyspace and table.
 
@@ -63,9 +63,9 @@ HttpApi actor will start Akka HTTP server with few routes for:
 - Querying database (obtaining all issues for specific date and issue by date and id)
 - Event stream
 
-In concept of CQRS write and read side are asynchronous. Therefore, we'll always face eventual consistency issue.
+In a concept of CQRS, write and read side are asynchronous. Therefore, we'll always face eventual consistency issue.
 Which simply means: When written, data will not be immediately available for reading. In this example, we solved
-this issue by publishing event to the DistributedPubSub mediator when it reaches its read side, then the issue is being
+this issue by publishing event to the DistributedPubSub mediator when it reaches its read side, then the issue is
 published via event stream as a server sent event. Therefore, a frontend application can subscribe on this event
 stream and live update its UI.
 

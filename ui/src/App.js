@@ -4,7 +4,7 @@ import { createBrowserHistory } from 'history';
 
 import { Calendar } from './components/Calendar';
 import { IssuePage } from './components/IssuePage';
-import { baseUrl } from './components/IssuePage/issuesApi';
+import { baseUrl } from './components/IssuePage/api/issuesApi';
 const history = createBrowserHistory();
 
 const App = () => {

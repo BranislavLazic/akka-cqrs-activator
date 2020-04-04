@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Col, Row, Button } from 'antd';
-import { fetchIssuesByDate, closeIssue, deleteIssue } from './issuesApi';
-import { IssueModal } from '../IssueModal';
+import { fetchIssuesByDate, closeIssue, deleteIssue } from './api/issuesApi';
+import { IssueModal } from './IssueModal';
 import { IssueTicket } from './IssueTicket';
 import styles from './IssuePage.module.css';
 import { PlusOutlined } from '@ant-design/icons';
