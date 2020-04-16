@@ -139,4 +139,4 @@ addCommandAlias("c", "compile")
 addCommandAlias("t", "test")
 addCommandAlias("r", "reload")
 // Create executable JAR
-addCommandAlias("a", ";yarn;assembly")
+addCommandAlias("dist", ";yarn;assembly")
