@@ -18,14 +18,14 @@ package org.akkacqrs.validator
 
 import java.time.LocalDate
 import java.util.UUID
-
 import cats.data.NonEmptyList
-import cats.data.Validated.{ Invalid, Valid }
+import cats.data.Validated.{Invalid, Valid}
 import org.akkacqrs.write.IssueRepository.CreateIssue
 import org.akkacqrs.write.IssueRepository
-import org.scalatest.{ Matchers, WordSpec }
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class IssueCommandsValidatorSpec extends WordSpec with Matchers {
+class IssueCommandsValidatorSpec extends AnyWordSpec with Matchers {
   import org.akkacqrs.validator.IssueCommandsValidator._
 
   "Command validator" should {

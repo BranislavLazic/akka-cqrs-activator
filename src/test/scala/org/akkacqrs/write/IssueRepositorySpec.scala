@@ -18,13 +18,13 @@ package org.akkacqrs.write
 
 import java.time.LocalDate
 import java.util.UUID
-
 import akka.actor.ActorRef
 import akka.testkit.TestProbe
 import org.akkacqrs.BaseSpec
-import org.scalatest.{ Matchers, WordSpec }
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class IssueRepositorySpec extends WordSpec with Matchers with BaseSpec {
+class IssueRepositorySpec extends AnyWordSpec with Matchers with BaseSpec {
 
   import org.akkacqrs.write.IssueRepository._
 

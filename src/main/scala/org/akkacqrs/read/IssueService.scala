@@ -125,7 +125,10 @@ class IssueService(session: Session, publishSubscribeMediator: ActorRef, readJou
         case EventEnvelope(_, _, _, event: IssueEvent) => event
         case EventEnvelope(_, _, _, event)             => event
       }
-      .mapAsync(2)(handleEvent)
+      .mapAsync(2)(e => {
+        println(e)
+        handleEvent(e)
+      })
       .map(Publish(className[IssueEvent], _))
       .runWith(Sink.actorRef(publishSubscribeMediator, "completed"))
 

@@ -16,26 +16,12 @@
 
 package org.akkacqrs.adapter
 
-import java.io.NotSerializableException
-import java.time.LocalDate
-import java.util.UUID
-
+import java.io.{ ByteArrayOutputStream, NotSerializableException }
 import akka.serialization.SerializerWithStringManifest
-import pbdirect.PBFormat
-import cats.syntax.invariant._
-import pbdirect._
-
-object IssueEventSerializer {
-  implicit val localDateFormat: PBFormat[LocalDate] =
-    PBFormat[String].imap(LocalDate.parse)(_.toString)
-
-  implicit val uuidFormat: PBFormat[UUID] =
-    PBFormat[String].imap(UUID.fromString)(_.toString)
-}
+import com.sksamuel.avro4s.{ AvroInputStream, AvroOutputStream, AvroSchema }
 
 final class IssueEventSerializer extends SerializerWithStringManifest {
   import org.akkacqrs.write.IssueRepository._
-  import IssueEventSerializer._
 
   override def identifier: Int = getClass.getName.hashCode
 
@@ -56,21 +42,46 @@ final class IssueEventSerializer extends SerializerWithStringManifest {
       }
   }
 
-  override def toBinary(o: AnyRef): Array[Byte] =
+  override def toBinary(o: AnyRef): Array[Byte] = {
+    val byteArrayStream = new ByteArrayOutputStream()
     o match {
       case serializable: Serializable =>
         serializable match {
-          case evt: IssueEvent => evt.toPB
+          case ic @ IssueCreated(_, _, _, _, _) =>
+            serialize(ic, byteArrayStream, AvroOutputStream.binary[IssueCreated].to(byteArrayStream).build())
+          case iu @ IssueUpdated(_, _, _, _) =>
+            serialize(iu, byteArrayStream, AvroOutputStream.binary[IssueUpdated].to(byteArrayStream).build())
+          case ic @ IssueClosed(_, _) =>
+            serialize(ic, byteArrayStream, AvroOutputStream.binary[IssueClosed].to(byteArrayStream).build())
+          case id @ IssueDeleted(_, _) =>
+            serialize(id, byteArrayStream, AvroOutputStream.binary[IssueDeleted].to(byteArrayStream).build())
         }
       case _ => throw new IllegalArgumentException(s"Unknown class: ${o.getClass}!")
     }
+  }
 
   override def fromBinary(bytes: Array[Byte], manifest: String): AnyRef =
     manifest match {
-      case IssueCreatedManifest => bytes.pbTo[IssueCreated]
-      case IssueUpdatedManifest => bytes.pbTo[IssueUpdated]
-      case IssueClosedManifest  => bytes.pbTo[IssueClosed]
-      case IssueDeletedManifest => bytes.pbTo[IssueDeleted]
-      case _                    => throw new NotSerializableException(manifest)
+      case IssueCreatedManifest =>
+        deserialize(AvroInputStream.binary[IssueCreated].from(bytes).build(AvroSchema[IssueCreated]))
+      case IssueUpdatedManifest =>
+        deserialize(AvroInputStream.binary[IssueUpdated].from(bytes).build(AvroSchema[IssueUpdated]))
+      case IssueClosedManifest =>
+        deserialize(AvroInputStream.binary[IssueClosed].from(bytes).build(AvroSchema[IssueClosed]))
+      case IssueDeletedManifest =>
+        deserialize(AvroInputStream.binary[IssueDeleted].from(bytes).build(AvroSchema[IssueDeleted]))
+      case _ => throw new NotSerializableException(manifest)
     }
+
+  private def serialize[T](t: T, byteArrayOutputStream: ByteArrayOutputStream, os: AvroOutputStream[T]): Array[Byte] = {
+    os.write(t)
+    os.close()
+    byteArrayOutputStream.toByteArray
+  }
+
+  private def deserialize[T](is: AvroInputStream[T]): T = {
+    val obj = is.iterator.toSet
+    is.close()
+    obj.head
+  }
 }

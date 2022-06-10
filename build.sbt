@@ -10,10 +10,10 @@ lazy val `akka-cqrs-activator` =
     .dependsOn(`ui`)
     .settings(settings)
     .settings(
-      assemblyMergeStrategy in assembly := {
+      assembly / assemblyMergeStrategy := {
         case x if x.contains("io.netty.versions.properties") => MergeStrategy.first
         case x =>
-          val oldStrategy = (assemblyMergeStrategy in assembly).value
+          val oldStrategy = (assembly / assemblyMergeStrategy).value
           oldStrategy(x)
       }
     )
@@ -23,8 +23,10 @@ lazy val `akka-cqrs-activator` =
           library.akkaHttpCirce,
           library.akkaPersistence,
           library.akkaPersistenceCassandra,
+          library.akkaRemote,
+          library.akkaStream,
+          library.avro4s,
           library.circeGeneric,
-          library.pbDirect,
           library.akkaTestkit             % Test,
           library.akkaHttpTestkit         % Test,
           library.akkaPersistenceInMemory % Test,
@@ -38,11 +40,11 @@ lazy val frontendNodeModulesDir = settingKey[File]("node_modules directory")
 lazy val frontendOutputDir      = settingKey[File]("output directory for target files")
 lazy val frontendBuildDir       = settingKey[File]("output directory for build files")
 
-frontendNodeModulesDir in Global := baseDirectory.value / "ui" / "node_modules"
-frontendBuildDir in Global := baseDirectory.value / "ui" / "build"
-frontendOutputDir in Global := baseDirectory.value / "ui" / "target" / s"scala-${scalaBinaryVersion.value}" / "classes"
+Global / frontendNodeModulesDir := baseDirectory.value / "ui" / "node_modules"
+Global / frontendBuildDir := baseDirectory.value / "ui" / "build"
+Global / frontendOutputDir := baseDirectory.value / "ui" / "target" / s"scala-${scalaBinaryVersion.value}" / "classes"
 
-commands in Global += Command.command("yarn") { state =>
+Global / commands += Command.command("yarn") { state =>
   if (!frontendNodeModulesDir.value.exists()) {
     Keys.sLog.value.info("Node modules not installed. Installing ...")
     Process("yarn", new File("./ui")).!!
@@ -58,8 +60,8 @@ lazy val `ui` =
     .in(file("./ui"))
     .settings(settings)
     .settings(
-      resourceDirectory in Compile := baseDirectory.value / "build",
-      sourceDirectory in Compile := baseDirectory.value / "src"
+      Compile / resourceDirectory := baseDirectory.value / "build",
+      Compile / sourceDirectory := baseDirectory.value / "src"
     )
 
 // *****************************************************************************
@@ -69,27 +71,28 @@ lazy val `ui` =
 lazy val library =
   new {
     object Version {
-      val akka                     = "2.5.23"
+      val akka                     = "2.5.32"
       val akkaHttp                 = "10.1.9"
-      val akkaPersistenceCassandra = "0.85"
-      val akkaPersistenceInMemory  = "2.5.1.1"
-      val akkaHttpCirce            = "1.27.0"
-      val circeGeneric             = "0.11.1"
-      val mockito                  = "1.0.0"
-      val pbDirect                 = "0.1.0"
-      val scalaCheck               = "1.13.5"
-      val scalaTest                = "3.0.4"
+      val akkaPersistenceCassandra = "0.107"
+      val akkaPersistenceInMemory  = "2.5.15.2"
+      val akkaHttpCirce            = "1.39.2"
+      val circeGeneric             = "0.14.2"
+      val mockito                  = "1.9.0"
+      val scalaCheck               = "1.16.0"
+      val scalaTest                = "3.2.12"
     }
     val akkaHttp                 = "com.typesafe.akka"   %% "akka-http"                  % Version.akkaHttp
     val akkaTestkit              = "com.typesafe.akka"   %% "akka-testkit"               % Version.akka
+    val akkaStream               = "com.typesafe.akka"   %% "akka-stream"                % Version.akka
+    val akkaRemote               = "com.typesafe.akka"   %% "akka-remote"                % Version.akka
     val akkaHttpTestkit          = "com.typesafe.akka"   %% "akka-http-testkit"          % Version.akkaHttp
     val akkaPersistence          = "com.typesafe.akka"   %% "akka-persistence"           % Version.akka
     val akkaPersistenceCassandra = "com.typesafe.akka"   %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
     val akkaPersistenceInMemory  = "com.github.dnvriend" %% "akka-persistence-inmemory"  % Version.akkaPersistenceInMemory
     val akkaHttpCirce            = "de.heikoseeberger"   %% "akka-http-circe"            % Version.akkaHttpCirce
+    val avro4s                   = "com.sksamuel.avro4s" %% "avro4s-core"                % "4.0.13"
     val circeGeneric             = "io.circe"            %% "circe-generic"              % Version.circeGeneric
     val mockito                  = "org.mockito"         %% "mockito-scala"              % Version.mockito
-    val pbDirect                 = "beyondthelines"      %% "pbdirect"                   % Version.pbDirect
     val scalaCheck               = "org.scalacheck"      %% "scalacheck"                 % Version.scalaCheck
     val scalaTest                = "org.scalatest"       %% "scalatest"                  % Version.scalaTest
   }
@@ -105,8 +108,7 @@ lazy val settings =
 
 lazy val commonSettings =
   Seq(
-    // scalaVersion from .travis.yml via sbt-travisci
-    // scalaVersion := "2.12.4",
+    scalaVersion := "2.13.8",
     organization := "org.akkacqrs",
     organizationName := "Branislav Lazic",
     startYear := Some(2018),
@@ -115,14 +117,11 @@ lazy val commonSettings =
         "-unchecked",
         "-deprecation",
         "-language:_",
-        "-target:jvm-1.8",
         "-encoding",
-        "UTF-8",
-        "-Ypartial-unification"
+        "UTF-8"
       ),
-    unmanagedSourceDirectories.in(Compile) := Seq(scalaSource.in(Compile).value),
-    unmanagedSourceDirectories.in(Test) := Seq(scalaSource.in(Test).value),
-    resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
+    Compile / unmanagedSourceDirectories := Seq((Compile / scalaSource).value),
+    Test / unmanagedSourceDirectories := Seq((Test / scalaSource).value)
   )
 
 lazy val gitSettings =

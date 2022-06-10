@@ -18,25 +18,25 @@ package org.akkacqrs.api
 
 import java.time.LocalDate
 import java.util.UUID
-
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
-import akka.testkit.{ TestActor, TestProbe }
+import akka.testkit.{TestActor, TestProbe}
 import com.datastax.driver.core.utils.UUIDs
-import org.akkacqrs.read.{ IssueResponse, IssueService }
+import org.akkacqrs.read.{IssueResponse, IssueService}
 import org.akkacqrs.write.IssueRepository
 import org.mockito.integrations.scalatest.MockitoFixture
-import org.scalatest.{ Matchers, WordSpec }
 
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContextExecutor, Future }
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import akka.http.scaladsl.model.ContentType
 import akka.http.scaladsl.model.HttpCharsets.`UTF-8`
 import akka.http.scaladsl.model.MediaTypes.`text/html`
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class IssueRoutesSpec extends WordSpec with Matchers with ScalatestRouteTest with MockitoFixture {
+class IssueRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with MockitoFixture {
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._

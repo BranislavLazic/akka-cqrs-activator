@@ -37,7 +37,7 @@ object HttpServer extends CORSHandler {
       issueRepositoryManager: ActorRef,
       issueRead: IssueService,
       publishSubscribeMediator: ActorRef
-  ): Props =
+  )(implicit materializer: ActorMaterializer): Props =
     Props(
       new HttpServer(
         host,
@@ -61,11 +61,11 @@ final class HttpServer(
     issueRepositoryManager: ActorRef,
     issueService: IssueService,
     publishSubscribeMediator: ActorRef
-) extends Actor
+)(implicit materializer: ActorMaterializer)
+    extends Actor
     with ActorLogging {
   import context.dispatcher
   import org.akkacqrs.api.IssueRoutes._
-  private implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   Http(context.system)
     .bindAndHandle(
